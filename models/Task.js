@@ -5,6 +5,24 @@ const todoSchema = new mongoose.Schema({
   completed: { type: Boolean, default: false },
 });
 
+const mcqSchema = new mongoose.Schema(
+  {
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    question: { type: String, required: true },
+    options: [{ type: String, required: true }],
+    answer: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const essaySchema = new mongoose.Schema(
+  {
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    question: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const taskSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -16,9 +34,12 @@ const taskSchema = new mongoose.Schema(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     attachments: [{ type: String }],
     todoChecklist: [todoSchema],
-    progress: { type: Number, default: 0 }
+    progress: { type: Number, default: 0 },
+    essayQuestions: [essaySchema],
+    multipleChoiceQuestions: [mcqSchema],
+    isPretest: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Tasks", taskSchema);
+module.exports = mongoose.model("Task", taskSchema);
