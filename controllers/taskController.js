@@ -1,53 +1,38 @@
 const Task = require("../models/Task");
 
-// @desc    Get all tasks (Admin: all, User: only assigned tasks)
-// @route   GET /api/tasks/
+// @desc    Get all tasks (both Admin & Member see all tasks)
+// @route   GET /api/tasks
 // @access  Private
 const getTasks = async (req, res) => {
   try {
     const { status } = req.query;
-    let filter = {};
 
-    if (status) {
-      filter.status = status;
-    }
-    let tasks;
-    if (req.user.role === "admin") {
-      tasks = await Task.find(filter).populate("assignedTo", "name email");
-    } else {
-      tasks = await Task.find({ assignedTo: req.user._id, ...filter }).populate("assignedTo", "name email");
-    }
+    // 1️⃣  Siapkan filter status (jika ada)
+    const filter = {};
+    if (status) filter.status = status;
 
-    // Add Completed todoChecklist count to each task
-    tasks = await Promise.all(
-      tasks.map(async (task) => {
-        const completedCount = task.todoChecklist.filter((item) => item.completed).length;
-        return {
-          ...task._doc,
-          completedTodoCount: completedCount,
-        };
-      })
-    );
+    // 2️⃣  Ambil semua task + populate assignedTo
+    let tasks = await Task.find(filter).populate("assignedTo", "name email");
 
-    // Status summary counts
-    const isAdmin = req.user.role === "admin";
-    const baseFilter = isAdmin ? {} : { assignedTo: req.user._id };
-
-    const allTasks = await Task.countDocuments(baseFilter);
-
-    const pendingTasks = await Task.countDocuments({
-      ...baseFilter,
-      status: "Pending",
-    });
-    const inProgressTasks = await Task.countDocuments({
-      ...baseFilter,
-      status: "In Progress",
-    });
-    const completedTasks = await Task.countDocuments({
-      ...baseFilter,
-      status: "Completed",
+    // 3️⃣  Tambahkan completedTodoCount pada setiap task
+    tasks = tasks.map((task) => {
+      const completedCount = task.todoChecklist.filter((item) => item.completed).length;
+      return {
+        ...task.toObject(),
+        completedTodoCount: completedCount,
+      };
     });
 
+    // 4️⃣  Hitung ringkasan status untuk SEMUA task
+    const [allTasks, pendingTasks, inProgressTasks, completedTasks] =
+      await Promise.all([
+        Task.countDocuments({}),                    // total
+        Task.countDocuments({ status: "Pending" }),
+        Task.countDocuments({ status: "In Progress" }),
+        Task.countDocuments({ status: "Completed" }),
+      ]);
+
+    // 5️⃣  Kirim respons
     res.json({
       tasks,
       statusSummary: {
@@ -61,6 +46,9 @@ const getTasks = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+module.exports = { getTasks };
+
 
 // @desc    Get task by ID
 // @route   GET /api/tasks/:id
