@@ -38,6 +38,8 @@ const taskSchema = new mongoose.Schema(
     essayQuestions: [essaySchema],
     multipleChoiceQuestions: [mcqSchema],
     isPretest: { type: Boolean, default: false },
+    isPostest: { type: Boolean, default: false },
+
   },
   { timestamps: true }
 );

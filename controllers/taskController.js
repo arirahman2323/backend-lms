@@ -49,6 +49,34 @@ const getTasks = async (req, res) => {
 
 module.exports = { getTasks };
 
+// @desc    Get tasks by type (pretest/posttest/regular)
+// @route   GET /api/tasks/:type
+// @access  Private (Admin or user)
+const getTasksByType = async (req, res) => {
+  try {
+    const { type } = req.params;
+
+    let filter = {};
+
+    if (type === "pretest") {
+      filter.isPretest = true;
+    } else if (type === "postest") {
+      filter.isPostest = true;
+    } else if (type === "regular") {
+      filter.isPretest = false;
+      filter.isPostest = false;
+    } else {
+      return res.status(400).json({ message: "Invalid task type. Use pretest or postest" });
+    }
+
+    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json({ tasks });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 
 // @desc    Get task by ID
 // @route   GET /api/tasks/:id
@@ -66,7 +94,7 @@ const getTaskById = async (req, res) => {
 };
 
 // @desc    Create a new task (Admin only)
-// @route   POST /api/tasks/
+// @route   POST /api/tasks/, /api/tasks/pretest, /api/tasks/posttest
 // @access  Private (Admin)
 const createTask = async (req, res) => {
   try {
@@ -80,12 +108,16 @@ const createTask = async (req, res) => {
       todoChecklist,
       essayQuestions = [],
       multipleChoiceQuestions = [],
-      isPretest = false,
     } = req.body;
 
     if (!Array.isArray(assignedTo)) {
       return res.status(400).json({ message: "Assigned to must be an array of user IDs" });
     }
+
+    // Detect type from route
+    const path = req.route.path; // e.g. '/', '/pretest', '/posttest'
+    const isPretest = path === "/pretest";
+    const isPostest = path === "/postest";
 
     const task = await Task.create({
       title,
@@ -99,6 +131,7 @@ const createTask = async (req, res) => {
       essayQuestions,
       multipleChoiceQuestions,
       isPretest,
+      isPostest,
     });
 
     res.status(201).json({ message: "Task created successfully", task });
@@ -106,6 +139,7 @@ const createTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 // @desc    Update task details
@@ -359,4 +393,5 @@ module.exports = {
   updateTaskChecklist,
   getDashboardData,
   getUserDashboardData,
+  getTasksByType,
 };
