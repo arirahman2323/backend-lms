@@ -234,6 +234,45 @@ const deleteTask = async (req, res) => {
   }
 };
 
+// @desc Delete specific question from a task
+// @route DELETE /api/tasks/:taskId/questions/:questionId?type=essay|multipleChoice
+// @access Private (Admin)
+const deleteTaskQuestions = async (req, res) => {
+  try {
+    const { taskId, questionId } = req.params;
+    const { type } = req.query;
+
+    if (!type || !["essay", "multipleChoice"].includes(type)) {
+      return res.status(400).json({
+        message: "Query parameter 'type' must be 'essay' or 'multipleChoice'",
+      });
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    if (type === "essay") {
+      task.essayQuestions = task.essayQuestions.filter(
+        (q) => q._id.toString() !== questionId
+      );
+    } else {
+      task.multipleChoiceQuestions = task.multipleChoiceQuestions.filter(
+        (q) => q._id.toString() !== questionId
+      );
+    }
+
+    await task.save();
+
+    res.json({ message: `${type} question deleted successfully.` });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
 // @desc    Update task status
 // @route   PUT /api/tasks/:id/status
 // @access  Private
@@ -441,5 +480,6 @@ module.exports = {
   getDashboardData,
   getUserDashboardData,
   getTasksByType,
-  updateTaskQuestionsOnly
+  updateTaskQuestionsOnly,
+  deleteTaskQuestions
 };
