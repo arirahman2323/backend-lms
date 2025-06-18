@@ -171,6 +171,53 @@ const updateTask = async (req, res) => {
   }
 };
 
+// @desc    Update only questions of a task (Admin only)
+// @route   PUT /api/tasks/pretest/:id, /api/tasks/posttest/:id
+// @access  Private (Admin)
+const updateTaskQuestionsOnly = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const {
+      essayQuestions,
+      multipleChoiceQuestions
+    } = req.body;
+
+    // Optional: check route for context
+    const path = req.route.path;
+    const isPretest = path.includes("/pretest");
+    const isPostest = path.includes("/posttest");
+
+    // Optional: Validate type
+    if (isPretest && !task.isPretest) {
+      return res.status(400).json({ message: "This task is not marked as a pretest" });
+    }
+
+    if (isPostest && !task.isPostest) {
+      return res.status(400).json({ message: "This task is not marked as a posttest" });
+    }
+
+    // Only update questions
+    if (essayQuestions !== undefined) {
+      task.essayQuestions = essayQuestions;
+    }
+
+    if (multipleChoiceQuestions !== undefined) {
+      task.multipleChoiceQuestions = multipleChoiceQuestions;
+    }
+
+    const updatedTask = await task.save();
+    res.json({ message: "Questions updated successfully", task: updatedTask });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 // @desc Delete task (admin only)
 // @route DELETE /api/tasks/:id
 // @access Private (Admin)
@@ -394,4 +441,5 @@ module.exports = {
   getDashboardData,
   getUserDashboardData,
   getTasksByType,
+  updateTaskQuestionsOnly
 };
