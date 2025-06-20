@@ -49,7 +49,7 @@ const getTasks = async (req, res) => {
 
 module.exports = { getTasks };
 
-// @desc    Get tasks by type (pretest/posttest/regular)
+// @desc    Get tasks by type (pretest/postest/regular)
 // @route   GET /api/tasks/:type
 // @access  Private (Admin or user)
 const getTasksByType = async (req, res) => {
@@ -190,7 +190,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
     // Optional: check route for context
     const path = req.route.path;
     const isPretest = path.includes("/pretest");
-    const isPostest = path.includes("/posttest");
+    const isPostest = path.includes("/postest");
 
     // Optional: Validate type
     if (isPretest && !task.isPretest) {
@@ -198,7 +198,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
     }
 
     if (isPostest && !task.isPostest) {
-      return res.status(400).json({ message: "This task is not marked as a posttest" });
+      return res.status(400).json({ message: "This task is not marked as a postest" });
     }
 
     // Only update questions

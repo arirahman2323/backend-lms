@@ -1,8 +1,22 @@
 const express = require("express");
 const router = express.Router();
-const { submitTaskAnswer } = require("../controllers/taskSubmissionController");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, adminOnly } = require("../middlewares/authMiddleware");
 
-router.post("/:taskId", protect, submitTaskAnswer);
+const { 
+    submitTaskAnswer, 
+    getSubmissionsByUser,
+    getAllSubmissions,
+    updateEssayScoresBySubmission,
+    updateEssayScoresByUserType
+} = require("../controllers/taskSubmissionController");
+
+// Task Submission Routes
+router.post('/:type/:taskId', protect, submitTaskAnswer);
+// get submissions by user
+router.get('/:type/user/:userId', protect, getSubmissionsByUser);
+// get all task submissions
+router.get('/', protect, adminOnly, getAllSubmissions);
+// update essay scores
+router.post('/score-essay/:type/:userId', protect, adminOnly, updateEssayScoresByUserType);
 
 module.exports = router;

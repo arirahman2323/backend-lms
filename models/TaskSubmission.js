@@ -22,6 +22,7 @@ const taskSubmissionSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     essayAnswers: [essayAnswerSchema],
     multipleChoiceAnswers: [mcqAnswerSchema],
+    score: { type: Number, default: 0 },
     submittedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
