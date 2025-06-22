@@ -53,19 +53,15 @@ const getSubmissionsByUser = async (req, res) => {
       return res.status(400).json({ message: "Type must be 'pretest' or 'posttest'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId })
-      .populate("task", "title isPretest isPosttest dueDate")
-      .lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPosttest dueDate").lean();
 
-    const filtered = submissions.filter((sub) =>
-      type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest
-    );
+    const filtered = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
 
     res.json({
       userId,
       type,
       totalTasks: filtered.length,
-      submissions: filtered
+      submissions: filtered,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -77,14 +73,30 @@ const getSubmissionsByUser = async (req, res) => {
 // @access  Private (Admin)
 const getAllSubmissions = async (req, res) => {
   try {
-    const submissions = await TaskSubmission.find()
-      .populate("task", "title isPretest isPosttest dueDate")
-      .populate("user", "name email role")
-      .lean();
+    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role").lean();
 
     res.json({
       totalSubmissions: submissions.length,
-      submissions
+      submissions,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// @desc    Get submissions by task ID (Admin only)
+// @route   GET /api/task-submissions/task/:taskId
+// @access  Private (Admin)
+const getSubmissionsByTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role").lean();
+
+    res.json({
+      taskId,
+      totalSubmissions: submissions.length,
+      submissions,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -94,7 +106,6 @@ const getAllSubmissions = async (req, res) => {
 // @desc    Update essay scores by submission ID
 // @route   POST /api/task-submissions/score-essay/:submissionId
 // @access  Private (Admin)
-
 
 // @desc    Update essay scores by user and type
 // @route   POST /api/task-submissions/score-essay/:type/:userId
@@ -113,18 +124,16 @@ const updateEssayScoresByUserType = async (req, res) => {
     const submissions = await TaskSubmission.find({ user: userId }).populate("task");
 
     // Filter submission berdasarkan jenis tugas
-    const targetSubmissions = submissions.filter(sub =>
-      type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest
-    );
+    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
 
     let totalUpdated = 0;
 
     for (const submission of targetSubmissions) {
       let updated = false;
 
-      submission.essayAnswers = submission.essayAnswers.map(answer => {
+      submission.essayAnswers = submission.essayAnswers.map((answer) => {
         const answerQid = answer.questionId?.toString();
-        const found = scores.find(s => s.questionId?.toString() === answerQid);
+        const found = scores.find((s) => s.questionId?.toString() === answerQid);
 
         if (found) {
           updated = true;
@@ -132,7 +141,7 @@ const updateEssayScoresByUserType = async (req, res) => {
           return {
             questionId: answer.questionId,
             answer: answer.answer,
-            score: found.score
+            score: found.score,
           };
         }
 
@@ -143,10 +152,7 @@ const updateEssayScoresByUserType = async (req, res) => {
         submission.markModified("essayAnswers");
 
         // Tambahkan logika menghitung total skor essay
-        submission.score = submission.essayAnswers.reduce(
-          (total, ans) => total + (ans.score || 0),
-          0
-        );
+        submission.score = submission.essayAnswers.reduce((total, ans) => total + (ans.score || 0), 0);
 
         await submission.save();
         console.log(`✅ Skor diperbarui: Submission ${submission._id}, total score: ${submission.score}`);
@@ -154,7 +160,7 @@ const updateEssayScoresByUserType = async (req, res) => {
     }
 
     res.json({
-      message: `✅ Updated ${totalUpdated} essay score(s) for user ${userId} and type '${type}'`
+      message: `✅ Updated ${totalUpdated} essay score(s) for user ${userId} and type '${type}'`,
     });
   } catch (error) {
     console.error("❌ Error updating essay scores:", error);
@@ -167,4 +173,5 @@ module.exports = {
   getSubmissionsByUser,
   getAllSubmissions,
   updateEssayScoresByUserType,
+  getSubmissionsByTask,
 };
