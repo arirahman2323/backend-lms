@@ -91,7 +91,7 @@ const getSubmissionsByTask = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role").lean();
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role");
 
     res.json({
       taskId,
