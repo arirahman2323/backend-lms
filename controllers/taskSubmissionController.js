@@ -116,8 +116,8 @@ const updateEssayScoresByUserType = async (req, res) => {
     const { scores = [] } = req.body;
 
     // Validasi tipe
-    if (type !== "pretest" && type !== "posttest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'posttest'" });
+    if (type !== "pretest" && type !== "postest") {
+      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
     }
 
     // Ambil semua submission milik user
@@ -168,10 +168,54 @@ const updateEssayScoresByUserType = async (req, res) => {
   }
 };
 
+// @desc    Update total score of a submission
+// @route   POST /api/task-submissions/:type/:taskId/score/:userId
+// @access  Private (Admin)
+const updateTotalScore = async (req, res) => {
+  try {
+    const { type, taskId, userId } = req.params;
+    const { score } = req.body;
+
+    // Validasi tipe
+    if (type !== "pretest" && type !== "postest") {
+      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
+    }
+
+    if (typeof score !== "number") {
+      return res.status(400).json({ message: "Score must be a number" });
+    }
+
+    // Ambil semua submission milik user
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task");
+
+    // Filter submission berdasarkan jenis tugas
+    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
+
+    const submissionToUpdate = targetSubmissions.find((sub) => sub.task._id.toString() === taskId);
+
+    if (!submissionToUpdate) {
+      return res.status(404).json({ message: "Submission not found for given user, task, and type" });
+    }
+
+    submissionToUpdate.score = score;
+    submissionToUpdate.task.status = "Completed";
+    await submissionToUpdate.save();
+
+    res.json({
+      message: "✅ Score updated successfully",
+      updatedSubmission: submissionToUpdate,
+    });
+  } catch (error) {
+    console.error("❌ Error updating total score:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   submitTaskAnswer,
   getSubmissionsByUser,
   getAllSubmissions,
   updateEssayScoresByUserType,
   getSubmissionsByTask,
+  updateTotalScore,
 };
