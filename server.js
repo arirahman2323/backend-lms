@@ -10,6 +10,7 @@ const userRoutes = require("./routes/userRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const taskSubmissionRoutes = require("./routes/taskSubmissionRoutes");
+const sureveiRoutes = require("./routes/surveiRoutes");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/task-submissions", taskSubmissionRoutes);
+app.use("/api/survei", sureveiRoutes);
 
 // Static files (uploads)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
