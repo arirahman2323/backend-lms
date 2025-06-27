@@ -150,29 +150,30 @@ const createTask = async (req, res) => {
 const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    task.title = req.body.title || task.title;
-    task.description = req.body.description || task.description;
-    task.priority = req.body.priority || task.priority;
-    task.dueDate = req.body.dueDate || task.dueDate;
-    task.todoChecklist = req.body.todoChecklist || task.todoChecklist;
-    task.attachments = req.body.attachments || task.attachments;
-    task.problem = req.body.problem || task.problem;
+    if ("title" in req.body) task.title = req.body.title;
+    if ("description" in req.body) task.description = req.body.description;
+    if ("priority" in req.body) task.priority = req.body.priority;
+    if ("dueDate" in req.body) task.dueDate = req.body.dueDate;
+    if ("todoChecklist" in req.body) task.todoChecklist = req.body.todoChecklist;
+    if ("attachments" in req.body) task.attachments = req.body.attachments;
+    if ("problem" in req.body) task.problem = req.body.problem;
 
-    if (req.body.assignedTo) {
+    if ("assignedTo" in req.body) {
       if (!Array.isArray(req.body.assignedTo)) {
         return res.status(400).json({ message: "assignedTo must be an array of user IDs" });
       }
       task.assignedTo = req.body.assignedTo;
     }
+
     const updatedTask = await task.save();
     res.json({ message: "Task updated successfully", task: updatedTask });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // @desc    Update only questions of a task (Admin only)
 // @route   PUT /api/tasks/pretest/:id, /api/tasks/posttest/:id
