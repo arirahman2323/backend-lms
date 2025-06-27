@@ -10,8 +10,7 @@ const submitTaskAnswer = async (req, res) => {
     const {
       essayAnswers = [],
       multipleChoiceAnswers = [],
-      problemAnswer,        // <- Tambahan baru
-      groupNumber           // <- Tambahan baru
+      problemAnswer= [],        // <- Tambahan baru
     } = req.body;
 
     const userId = req.user._id;
@@ -41,7 +40,6 @@ const submitTaskAnswer = async (req, res) => {
       essayAnswers,
       multipleChoiceAnswers,
       problemAnswer,       // <- Disimpan
-      groupNumber          // <- Disimpan
     });
 
     res.status(201).json({ message: "Task submitted successfully", submission });

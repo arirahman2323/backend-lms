@@ -15,6 +15,13 @@ const mcqAnswerSchema = new mongoose.Schema(
   },
   { _id: false }
 );
+const problemAnswerSchema = new mongoose.Schema(
+  {
+    questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    problem: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const taskSubmissionSchema = new mongoose.Schema(
   {
@@ -26,8 +33,7 @@ const taskSubmissionSchema = new mongoose.Schema(
     submittedAt: { type: Date, default: Date.now },
 
     // ✅ Tambahan
-    problemAnswer: { type: String },
-    groupNumber: { type: Number },
+    problemAnswer: [problemAnswerSchema],
   },
   { timestamps: true }
 );
