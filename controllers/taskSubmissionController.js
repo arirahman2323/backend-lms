@@ -10,8 +10,7 @@ const submitTaskAnswer = async (req, res) => {
     const {
       essayAnswers = [],
       multipleChoiceAnswers = [],
-      problemAnswer, // <- Tambahan baru
-      groupNumber, // <- Tambahan baru
+      problemAnswer = [], // <- Tambahan baru
     } = req.body;
 
     const userId = req.user._id;
@@ -26,8 +25,8 @@ const submitTaskAnswer = async (req, res) => {
     if (type === "pretest" && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
     }
-    if (type === "postest" && !task.isPostest) {
-      return res.status(400).json({ message: "This task is not marked as a postest" });
+    if (type === "posttest" && !task.isPosttest) {
+      return res.status(400).json({ message: "This task is not marked as a posttest" });
     }
 
     const alreadySubmitted = await TaskSubmission.findOne({ task: taskId, user: userId });
@@ -41,7 +40,6 @@ const submitTaskAnswer = async (req, res) => {
       essayAnswers,
       multipleChoiceAnswers,
       problemAnswer, // <- Disimpan
-      groupNumber, // <- Disimpan
     });
 
     res.status(201).json({ message: "Task submitted successfully", submission });
