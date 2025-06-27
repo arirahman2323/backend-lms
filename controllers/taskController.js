@@ -108,8 +108,7 @@ const createTask = async (req, res) => {
       todoChecklist,
       essayQuestions = [],
       multipleChoiceQuestions = [],
-      problem, // <- ditambahkan
-      groupNumber, // <- ditambahkan
+      problem = [], // <- ditambahkan
     } = req.body;
 
     if (!Array.isArray(assignedTo)) {
@@ -137,7 +136,6 @@ const createTask = async (req, res) => {
       isPostest,
       isProblem,
       problem,       // <- ditambahkan
-      groupNumber,   // <- ditambahkan
     });
 
     res.status(201).json({ message: "Task created successfully", task });

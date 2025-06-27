@@ -23,6 +23,13 @@ const essaySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const problemSchema = new mongoose.Schema(
+  {
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    problem: { type: String, required: true },
+  },
+  { _id: false }
+);
 const taskSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -42,8 +49,7 @@ const taskSchema = new mongoose.Schema(
     isProblem: { type: Boolean, default: false },
 
     // ✅ Tambahan baru
-    problem: { type: String },
-    groupNumber: { type: Number },
+    problem: [problemSchema],
   },
   { timestamps: true }
 );
