@@ -187,12 +187,13 @@ const updateTaskQuestionsOnly = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    const { essayQuestions, multipleChoiceQuestions } = req.body;
+    const { essayQuestions, multipleChoiceQuestions, problem } = req.body;
 
     // Optional: check route for context
     const path = req.route.path;
     const isPretest = path.includes("/pretest");
     const isPostest = path.includes("/postest");
+    const isProblem = path.includes("/problem");
 
     // Optional: Validate type
     if (isPretest && !task.isPretest) {
@@ -203,6 +204,9 @@ const updateTaskQuestionsOnly = async (req, res) => {
       return res.status(400).json({ message: "This task is not marked as a postest" });
     }
 
+    if (isProblem && !task.isProblem) {
+      return res.status(400).json({ message: "This task is not marked as a problem" });
+    }
     // Only update questions
     if (essayQuestions !== undefined) {
       task.essayQuestions = essayQuestions;
@@ -212,6 +216,9 @@ const updateTaskQuestionsOnly = async (req, res) => {
       task.multipleChoiceQuestions = multipleChoiceQuestions;
     }
 
+    if (problem !== undefined) {
+      task.problem = problem;
+    }
     const updatedTask = await task.save();
     res.json({ message: "Questions updated successfully", task: updatedTask });
   } catch (error) {
