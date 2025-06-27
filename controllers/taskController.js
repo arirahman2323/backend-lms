@@ -24,13 +24,12 @@ const getTasks = async (req, res) => {
     });
 
     // 4️⃣  Hitung ringkasan status untuk SEMUA task
-    const [allTasks, pendingTasks, inProgressTasks, completedTasks] =
-      await Promise.all([
-        Task.countDocuments({}),                    // total
-        Task.countDocuments({ status: "Pending" }),
-        Task.countDocuments({ status: "In Progress" }),
-        Task.countDocuments({ status: "Completed" }),
-      ]);
+    const [allTasks, pendingTasks, inProgressTasks, completedTasks] = await Promise.all([
+      Task.countDocuments({}), // total
+      Task.countDocuments({ status: "Pending" }),
+      Task.countDocuments({ status: "In Progress" }),
+      Task.countDocuments({ status: "Completed" }),
+    ]);
 
     // 5️⃣  Kirim respons
     res.json({
@@ -76,7 +75,6 @@ const getTasksByType = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 // @desc    Get task by ID
 // @route   GET /api/tasks/:id
@@ -144,7 +142,6 @@ const createTask = async (req, res) => {
   }
 };
 
-
 // @desc    Update task details
 // @route   PUT /api/tasks/:id
 // @access  Private
@@ -185,10 +182,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    const {
-      essayQuestions,
-      multipleChoiceQuestions
-    } = req.body;
+    const { essayQuestions, multipleChoiceQuestions } = req.body;
 
     // Optional: check route for context
     const path = req.route.path;
@@ -219,7 +213,6 @@ const updateTaskQuestionsOnly = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 // @desc Delete task (admin only)
 // @route DELETE /api/tasks/:id
@@ -257,13 +250,9 @@ const deleteTaskQuestions = async (req, res) => {
     }
 
     if (type === "essay") {
-      task.essayQuestions = task.essayQuestions.filter(
-        (q) => q._id.toString() !== questionId
-      );
+      task.essayQuestions = task.essayQuestions.filter((q) => q._id.toString() !== questionId);
     } else {
-      task.multipleChoiceQuestions = task.multipleChoiceQuestions.filter(
-        (q) => q._id.toString() !== questionId
-      );
+      task.multipleChoiceQuestions = task.multipleChoiceQuestions.filter((q) => q._id.toString() !== questionId);
     }
 
     await task.save();
@@ -274,8 +263,6 @@ const deleteTaskQuestions = async (req, res) => {
   }
 };
 
-
-
 // @desc    Update task status
 // @route   PUT /api/tasks/:id/status
 // @access  Private
@@ -283,12 +270,6 @@ const updateTaskStatus = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
-
-    const isAssigned = task.assignedTo.some((userId) => userId.toString() === req.user._id.toString());
-
-    if (!isAssigned && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized" });
-    }
 
     task.status = req.body.status || task.status;
 
@@ -484,5 +465,5 @@ module.exports = {
   getUserDashboardData,
   getTasksByType,
   updateTaskQuestionsOnly,
-  deleteTaskQuestions
+  deleteTaskQuestions,
 };
