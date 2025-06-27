@@ -24,6 +24,10 @@ const taskSubmissionSchema = new mongoose.Schema(
     multipleChoiceAnswers: [mcqAnswerSchema],
     score: { type: Number, default: 0 },
     submittedAt: { type: Date, default: Date.now },
+
+    // ✅ Tambahan
+    problemAnswer: { type: String },
+    groupNumber: { type: Number },
   },
   { timestamps: true }
 );

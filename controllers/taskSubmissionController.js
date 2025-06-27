@@ -7,11 +7,17 @@ const TaskSubmission = require("../models/TaskSubmission");
 const submitTaskAnswer = async (req, res) => {
   try {
     const { type, taskId } = req.params;
-    const { essayAnswers = [], multipleChoiceAnswers = [] } = req.body;
+    const {
+      essayAnswers = [],
+      multipleChoiceAnswers = [],
+      problemAnswer,        // <- Tambahan baru
+      groupNumber           // <- Tambahan baru
+    } = req.body;
+
     const userId = req.user._id;
 
-    if (type !== "pretest" && type !== "posttest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'posttest'" });
+    if (type !== "pretest" && type !== "posttest" && type !== "problem") {
+      return res.status(400).json({ message: "Type must be 'pretest', 'posttest', or 'problem'" });
     }
 
     const task = await Task.findById(taskId);
@@ -34,6 +40,8 @@ const submitTaskAnswer = async (req, res) => {
       user: userId,
       essayAnswers,
       multipleChoiceAnswers,
+      problemAnswer,       // <- Disimpan
+      groupNumber          // <- Disimpan
     });
 
     res.status(201).json({ message: "Task submitted successfully", submission });
@@ -41,6 +49,7 @@ const submitTaskAnswer = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // @desc    Get all task submissions by user ID and task type
 // @route   GET /api/task-submissions/:type/user/:userId
