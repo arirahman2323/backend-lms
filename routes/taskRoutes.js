@@ -36,6 +36,7 @@ router.get("/type/:type", protect, getTasksByType);
 
 router.put("/pretest/:id", protect, updateTaskQuestionsOnly);
 router.put("/posttest/:id", protect, updateTaskQuestionsOnly);
+router.put("/problem/:id", protect, updateTaskQuestionsOnly);
 
 router.delete('/:taskId/questions/:questionId', protect, deleteTaskQuestions);
 module.exports = router;
