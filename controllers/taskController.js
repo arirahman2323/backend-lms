@@ -172,6 +172,8 @@ const updateTask = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
+  console.log("Updated Title:", task.title);
+
 };
 
 
@@ -188,13 +190,11 @@ const updateTaskQuestionsOnly = async (req, res) => {
 
     const { essayQuestions, multipleChoiceQuestions, problem, title, description, dueDate } = req.body;
 
-    // Optional: check route for context
     const path = req.route.path;
     const isPretest = path.includes("/pretest");
     const isPostest = path.includes("/postest");
     const isProblem = path.includes("/problem");
 
-    // Optional: Validate type
     if (isPretest && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
     }
@@ -206,7 +206,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
     if (isProblem && !task.isProblem) {
       return res.status(400).json({ message: "This task is not marked as a problem" });
     }
-    // Only update questions
+
     if (essayQuestions !== undefined) {
       task.essayQuestions = essayQuestions;
     }
@@ -216,17 +216,28 @@ const updateTaskQuestionsOnly = async (req, res) => {
     }
 
     if (problem !== undefined) {
-      task.title = title;
-      task.description = description;
-      task.dueDate = dueDate;
       task.problem = problem;
     }
+
+    if (title !== undefined) {
+      task.title = title;
+    }
+
+    if (description !== undefined) {
+      task.description = description;
+    }
+
+    if (dueDate !== undefined) {
+      task.dueDate = dueDate;
+    }
+
     const updatedTask = await task.save();
     res.json({ message: "Questions updated successfully", task: updatedTask });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // @desc Delete task (admin only)
 // @route DELETE /api/tasks/:id
