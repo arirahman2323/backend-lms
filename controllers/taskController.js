@@ -61,6 +61,8 @@ const getTasksByType = async (req, res) => {
       filter.isPretest = true;
     } else if (type === "postest") {
       filter.isPostest = true;
+    }else if (type === "problem") {
+      filter.isProblem = true;
     } else if (type === "regular") {
       filter.isPretest = false;
       filter.isPostest = false;
@@ -118,6 +120,7 @@ const createTask = async (req, res) => {
     const path = req.route.path; // e.g. '/', '/pretest', '/posttest'
     const isPretest = path === "/pretest";
     const isPostest = path === "/postest";
+    const isProblem = path === "/problem";
 
     const task = await Task.create({
       title,
@@ -132,6 +135,7 @@ const createTask = async (req, res) => {
       multipleChoiceQuestions,
       isPretest,
       isPostest,
+      isProblem,
       problem,       // <- ditambahkan
       groupNumber,   // <- ditambahkan
     });
@@ -157,6 +161,7 @@ const updateTask = async (req, res) => {
     task.dueDate = req.body.dueDate || task.dueDate;
     task.todoChecklist = req.body.todoChecklist || task.todoChecklist;
     task.attachments = req.body.attachments || task.attachments;
+    task.problem = req.body.problem || task.problem;
 
     if (req.body.assignedTo) {
       if (!Array.isArray(req.body.assignedTo)) {

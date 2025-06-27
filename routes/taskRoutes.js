@@ -31,6 +31,7 @@ router.put("/:id/todo", protect, updateTaskChecklist); // Update task checklist
 
 router.post("/pretest", protect, createTask); // Create a new pretest task
 router.post("/postest", protect, createTask); // Create a new posttest task
+router.post("/problem", protect, createTask); // Create a new problem task
 router.get("/type/:type", protect, getTasksByType);
 
 router.put("/pretest/:id", protect, updateTaskQuestionsOnly);

@@ -39,9 +39,10 @@ const taskSchema = new mongoose.Schema(
     multipleChoiceQuestions: [mcqSchema],
     isPretest: { type: Boolean, default: false },
     isPostest: { type: Boolean, default: false },
+    isProblem: { type: Boolean, default: false },
 
     // ✅ Tambahan baru
-    problem: { type: mongoose.Schema.Types.ObjectId, ref: "Problem" },
+    problem: { type: String },
     groupNumber: { type: Number },
   },
   { timestamps: true }
