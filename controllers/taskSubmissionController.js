@@ -1,7 +1,7 @@
 const Task = require("../models/Task");
 const TaskSubmission = require("../models/TaskSubmission");
 
-// @desc    Submit task answer (for pretest or posttest)
+// @desc    Submit task answer (for pretest or postest)
 // @route   POST /api/task-submissions/:type/:taskId
 // @access  Private (Member)
 const submitTaskAnswer = async (req, res) => {
@@ -15,8 +15,8 @@ const submitTaskAnswer = async (req, res) => {
 
     const userId = req.user._id;
 
-    if (type !== "pretest" && type !== "posttest" && type !== "problem") {
-      return res.status(400).json({ message: "Type must be 'pretest', 'posttest', or 'problem'" });
+    if (type !== "pretest" && type !== "postest" && type !== "problem") {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
 
     const task = await Task.findById(taskId);
@@ -25,8 +25,8 @@ const submitTaskAnswer = async (req, res) => {
     if (type === "pretest" && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
     }
-    if (type === "posttest" && !task.isPosttest) {
-      return res.status(400).json({ message: "This task is not marked as a posttest" });
+    if (type === "postest" && !task.isPostest) {
+      return res.status(400).json({ message: "This task is not marked as a postest" });
     }
 
     const alreadySubmitted = await TaskSubmission.findOne({ task: taskId, user: userId });
@@ -56,13 +56,13 @@ const getSubmissionsByUser = async (req, res) => {
   try {
     const { userId, type } = req.params;
 
-    if (type !== "pretest" && type !== "posttest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'posttest'" });
+    if (type !== "pretest" && type !== "postest") {
+      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPosttest dueDate").lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest dueDate").lean();
 
-    const filtered = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
+    const filtered = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
 
     res.json({
       userId,
@@ -80,7 +80,7 @@ const getSubmissionsByUser = async (req, res) => {
 // @access  Private (Admin)
 const getAllSubmissions = async (req, res) => {
   try {
-    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role").lean();
+    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPostest dueDate").populate("user", "name email role").lean();
 
     res.json({
       totalSubmissions: submissions.length,
@@ -98,7 +98,7 @@ const getSubmissionsByTask = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPosttest dueDate").populate("user", "name email role");
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest dueDate").populate("user", "name email role");
 
     res.json({
       taskId,
@@ -131,7 +131,7 @@ const updateEssayScoresByUserType = async (req, res) => {
     const submissions = await TaskSubmission.find({ user: userId }).populate("task");
 
     // Filter submission berdasarkan jenis tugas
-    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
+    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
 
     let totalUpdated = 0;
 
@@ -196,7 +196,7 @@ const updateTotalScore = async (req, res) => {
     const submissions = await TaskSubmission.find({ user: userId }).populate("task");
 
     // Filter submission berdasarkan jenis tugas
-    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPosttest));
+    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
 
     const submissionToUpdate = targetSubmissions.find((sub) => sub.task._id.toString() === taskId);
 
