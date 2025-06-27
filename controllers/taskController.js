@@ -108,6 +108,8 @@ const createTask = async (req, res) => {
       todoChecklist,
       essayQuestions = [],
       multipleChoiceQuestions = [],
+      problem, // <- ditambahkan
+      groupNumber, // <- ditambahkan
     } = req.body;
 
     if (!Array.isArray(assignedTo)) {
@@ -132,6 +134,8 @@ const createTask = async (req, res) => {
       multipleChoiceQuestions,
       isPretest,
       isPostest,
+      problem,       // <- ditambahkan
+      groupNumber,   // <- ditambahkan
     });
 
     res.status(201).json({ message: "Task created successfully", task });
@@ -139,7 +143,6 @@ const createTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 
 // @desc    Update task details

@@ -40,8 +40,12 @@ const taskSchema = new mongoose.Schema(
     isPretest: { type: Boolean, default: false },
     isPostest: { type: Boolean, default: false },
 
+    // ✅ Tambahan baru
+    problem: { type: mongoose.Schema.Types.ObjectId, ref: "Problem" },
+    groupNumber: { type: Number },
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model("Task", taskSchema);
