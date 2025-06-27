@@ -187,7 +187,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    const { essayQuestions, multipleChoiceQuestions, problem } = req.body;
+    const { essayQuestions, multipleChoiceQuestions, problem, title, description, dueDate } = req.body;
 
     // Optional: check route for context
     const path = req.route.path;
@@ -217,6 +217,9 @@ const updateTaskQuestionsOnly = async (req, res) => {
     }
 
     if (problem !== undefined) {
+      task.title = title;
+      task.description = description;
+      task.dueDate = dueDate;
       task.problem = problem;
     }
     const updatedTask = await task.save();
