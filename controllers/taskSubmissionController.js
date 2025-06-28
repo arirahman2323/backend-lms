@@ -55,13 +55,20 @@ const getSubmissionsByUser = async (req, res) => {
   try {
     const { userId, type } = req.params;
 
-    if (type !== "pretest" && type !== "postest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
+    // Validasi tipe
+    const validTypes = ["pretest", "postest", "problem"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest dueDate").lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem dueDate").lean();
 
-    const filtered = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
+    // Filter berdasarkan tipe
+    const filtered = submissions.filter((sub) => {
+      if (type === "pretest") return sub.task?.isPretest;
+      if (type === "postest") return sub.task?.isPostest;
+      if (type === "problem") return sub.task?.isProblem;
+    });
 
     res.json({
       userId,
@@ -183,8 +190,9 @@ const updateTotalScore = async (req, res) => {
     const { score } = req.body;
 
     // Validasi tipe
-    if (type !== "pretest" && type !== "postest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
+    const validTypes = ["pretest", "postest", "problem"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
 
     if (typeof score !== "number") {
@@ -194,8 +202,12 @@ const updateTotalScore = async (req, res) => {
     // Ambil semua submission milik user
     const submissions = await TaskSubmission.find({ user: userId }).populate("task");
 
-    // Filter submission berdasarkan jenis tugas
-    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
+    // Filter berdasarkan tipe tugas
+    const targetSubmissions = submissions.filter((sub) => {
+      if (type === "pretest") return sub.task?.isPretest;
+      if (type === "postest") return sub.task?.isPostest;
+      if (type === "problem") return sub.task?.isProblem;
+    });
 
     const submissionToUpdate = targetSubmissions.find((sub) => sub.task._id.toString() === taskId);
 
@@ -204,7 +216,7 @@ const updateTotalScore = async (req, res) => {
     }
 
     submissionToUpdate.score = score;
-    submissionToUpdate.task.status = "Completed";
+    submissionToUpdate.task.status = "Completed"; // optional: ini mengubah status task-nya langsung
     await submissionToUpdate.save();
 
     res.json({
