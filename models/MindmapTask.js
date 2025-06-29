@@ -9,6 +9,36 @@ const mindmapTaskSchema = new mongoose.Schema({
   instructions: { type: String, required: true },
   rubric: [rubricSchema],
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+  // ✅ Tambahan field baru (tidak mengubah yang ada)
+  description: { type: String },
+  priority: {
+    type: String,
+    enum: ["low", "medium", "high"],
+    default: "medium"
+  },
+  dueDate: { type: Date },
+  status: {
+    type: String,
+    enum: ["Pending", "In Progress", "Completed"],
+    default: "Pending"
+  },
+  assignedTo: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }],
+  attachments: [{
+    name: String,
+    url: String
+  }],
+  todoChecklist: [{
+    text: String,
+    completed: {
+      type: Boolean,
+      default: false
+    }
+  }]
 }, { timestamps: true });
 
-module.exports = mongoose.model("MindmapTask", mindmapTaskSchema);
+// ✅ Hindari OverwriteModelError saat development
+module.exports = mongoose.models.MindmapTask || mongoose.model("MindmapTask", mindmapTaskSchema);

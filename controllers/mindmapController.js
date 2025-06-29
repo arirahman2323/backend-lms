@@ -6,22 +6,60 @@ const MindmapSubmission = require("../models/MindmapSubmission");
 // ✅ Create mindmap task
 const createMindmapTask = async (req, res) => {
   try {
-    const { instructions } = req.body;
-    const rubricTexts = Array.isArray(req.body.rubric) ? req.body.rubric : [req.body.rubric];
+    const {
+      instructions,
+      description,
+      priority,
+      dueDate,
+      status,
+      assignedTo = [],
+      attachments,
+      todoChecklist
+    } = req.body;
+
+    if (!instructions) {
+      return res.status(400).json({ message: "Instructions are required" });
+    }
+
+    const rubricTexts = Array.isArray(req.body.rubric)
+      ? req.body.rubric
+      : req.body.rubric
+        ? [req.body.rubric]
+        : [];
+
     const rubricFiles = req.files || [];
 
     const rubric = rubricTexts.map((text, idx) => ({
       text,
-      file: rubricFiles[idx] ? rubricFiles[idx].filename : null,
+      file: rubricFiles[idx]?.filename || null,
     }));
+
+    // Parse JSON strings for attachments and checklist
+    let parsedAttachments = [];
+    let parsedChecklist = [];
+
+    try {
+      if (attachments) parsedAttachments = JSON.parse(attachments);
+      if (todoChecklist) parsedChecklist = JSON.parse(todoChecklist);
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid JSON in attachments or todoChecklist" });
+    }
 
     const task = await MindmapTask.create({
       instructions,
       rubric,
+      description,
+      priority,
+      dueDate,
+      status,
+      assignedTo,
+      attachments: parsedAttachments,
+      todoChecklist: parsedChecklist,
       createdBy: req.user._id,
     });
 
     res.status(201).json({ message: "Mindmap task created", task });
+
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -33,17 +71,50 @@ const updateMindmapTask = async (req, res) => {
     const task = await MindmapTask.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    const { instructions } = req.body;
-    const rubricTexts = Array.isArray(req.body.rubric) ? req.body.rubric : [req.body.rubric];
-    const rubricFiles = req.files || [];
+    const {
+      instructions,
+      description,
+      priority,
+      dueDate,
+      status,
+      assignedTo,
+      attachments,
+      todoChecklist
+    } = req.body;
 
-    if (instructions) task.instructions = instructions;
+    if (instructions !== undefined) task.instructions = instructions;
+    if (description !== undefined) task.description = description;
+    if (priority !== undefined) task.priority = priority;
+    if (dueDate !== undefined) task.dueDate = dueDate;
+    if (status !== undefined) task.status = status;
+    if (assignedTo !== undefined) task.assignedTo = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+
+    // Rubric update
+    const rubricTexts = Array.isArray(req.body.rubric)
+      ? req.body.rubric
+      : req.body.rubric
+        ? [req.body.rubric]
+        : [];
+
+    const rubricFiles = req.files || [];
 
     if (rubricTexts.length > 0 || rubricFiles.length > 0) {
       task.rubric = rubricTexts.map((text, idx) => ({
         text,
-        file: rubricFiles[idx] ? rubricFiles[idx].filename : null,
+        file: rubricFiles[idx]?.filename || null,
       }));
+    }
+
+    // Parse JSON fields if sent as string
+    try {
+      if (attachments !== undefined) {
+        task.attachments = typeof attachments === "string" ? JSON.parse(attachments) : attachments;
+      }
+      if (todoChecklist !== undefined) {
+        task.todoChecklist = typeof todoChecklist === "string" ? JSON.parse(todoChecklist) : todoChecklist;
+      }
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid JSON in attachments or todoChecklist" });
     }
 
     await task.save();
