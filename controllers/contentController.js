@@ -15,8 +15,6 @@ const createContent = async (req, res) => {
       todoChecklist
     } = req.body;
 
-    const files = req.files?.map(f => f.path || f.filename) || [];
-
     if (!type || !["materi", "glosarium"].includes(type)) {
       return res.status(400).json({ message: "Type must be 'materi' or 'glosarium'" });
     }
@@ -33,7 +31,10 @@ const createContent = async (req, res) => {
       return res.status(400).json({ message: "Content is required" });
     }
 
-    // Parse attachments and todoChecklist if sent as JSON string
+    // Parse file list
+    const files = req.files?.map(f => `${req.protocol}://${req.get("host")}/uploads/${f.filename}`) || [];
+
+    // Parse JSON fields
     let parsedAttachments = [];
     let parsedChecklist = [];
 
@@ -68,6 +69,7 @@ const createContent = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 const getContents = async (req, res) => {
   try {
@@ -113,9 +115,8 @@ const updateContent = async (req, res) => {
       todoChecklist,
     } = req.body;
 
-    const files = req.files?.map(f => f.path || f.filename) || [];
+    const newFiles = req.files?.map(f => `${req.protocol}://${req.get("host")}/uploads/${f.filename}`) || [];
 
-    // Validasi type (opsional jika tidak ingin mengganti type)
     if (type && !["materi", "glosarium"].includes(type)) {
       return res.status(400).json({ message: "Type must be 'materi' or 'glosarium'" });
     }
@@ -132,7 +133,6 @@ const updateContent = async (req, res) => {
       content.assignedTo = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
     }
 
-    // Handle JSON-parsed fields
     try {
       if (attachments !== undefined) {
         content.attachments = typeof attachments === "string" ? JSON.parse(attachments) : attachments;
@@ -144,9 +144,8 @@ const updateContent = async (req, res) => {
       return res.status(400).json({ message: "Invalid JSON in attachments or todoChecklist" });
     }
 
-    // Tambah file baru jika ada
-    if (files.length > 0) {
-      content.files = [...content.files, ...files];
+    if (newFiles.length > 0) {
+      content.files = [...content.files, ...newFiles];
     }
 
     await content.save();
@@ -157,6 +156,10 @@ const updateContent = async (req, res) => {
   }
 };
 
+
+const fs = require("fs");
+const path = require("path");
+
 const deleteContent = async (req, res) => {
   try {
     const content = await Content.findById(req.params.id);
@@ -164,13 +167,28 @@ const deleteContent = async (req, res) => {
       return res.status(404).json({ message: "Content not found" });
     }
 
-    await content.deleteOne(); // ✅ ganti .remove()
+    // Hapus semua file di content.files (jika ada)
+    if (Array.isArray(content.files)) {
+      content.files.forEach((fileUrl) => {
+        // Ekstrak nama file dari URL
+        const filename = fileUrl.split("/uploads/")[1];
+        const filepath = path.join(__dirname, "..", "uploads", filename);
 
-    res.json({ message: "Content deleted" });
+        fs.unlink(filepath, (err) => {
+          if (err) {
+            console.warn(`⚠️ Failed to delete file ${filename}:`, err.message);
+          }
+        });
+      });
+    }
+
+    await content.deleteOne();
+    res.json({ message: "Content and files deleted" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 module.exports = {
