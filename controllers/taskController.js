@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const Group = require("../models/Group");
 
 // @desc    Get all tasks (both Admin & Member see all tasks)
 // @route   GET /api/tasks
@@ -61,7 +62,7 @@ const getTasksByType = async (req, res) => {
       filter.isPretest = true;
     } else if (type === "postest") {
       filter.isPostest = true;
-    }else if (type === "problem") {
+    } else if (type === "problem") {
       filter.isProblem = true;
     } else if (type === "regular") {
       filter.isPretest = false;
@@ -84,6 +85,19 @@ const getTasksByType = async (req, res) => {
 const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id).populate("assignedTo", "name email profileImageUrl");
+
+    if (task?.problem?.length > 0) {
+      // Populate manual group
+      const groupIds = task.problem.map((p) => p.groupId).filter(Boolean);
+      const groups = await Group.find({ _id: { $in: groupIds } }).lean();
+
+      // Inject data group ke masing-masing problem
+      task.problem = task.problem.map((p) => {
+        const group = groups.find((g) => g._id.toString() === p.groupId?.toString());
+        return { ...p, group };
+      });
+    }
+
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
@@ -135,8 +149,27 @@ const createTask = async (req, res) => {
       isPretest,
       isPostest,
       isProblem,
-      problem,       // <- ditambahkan
+      problem,
     });
+
+    const updatedProblem = await Promise.all(
+      task.problem.map(async (p, index) => {
+        const group = await Group.create({
+          name: `${title} - Problem ${index + 1}`,
+          members: [...assignedTo, req.user._id],
+          taskId: task._id,
+          problemId: p._id, // ✅ DITAMBAHKAN
+        });
+
+        return {
+          ...p.toObject(),
+          groupId: group._id,
+        };
+      })
+    );
+
+    task.problem = updatedProblem;
+    await task.save();
 
     res.status(201).json({ message: "Task created successfully", task });
   } catch (error) {
@@ -173,9 +206,7 @@ const updateTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
   console.log("Updated Title:", task.title);
-
 };
-
 
 // @desc    Update only questions of a task (Admin only)
 // @route   PUT /api/tasks/pretest/:id, /api/tasks/posttest/:id
@@ -237,7 +268,6 @@ const updateTaskQuestionsOnly = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 // @desc Delete task (admin only)
 // @route DELETE /api/tasks/:id

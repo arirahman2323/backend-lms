@@ -27,6 +27,7 @@ const problemSchema = new mongoose.Schema(
   {
     _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
     problem: { type: String },
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: "Group" },
   },
   { _id: false }
 );
@@ -53,6 +54,5 @@ const taskSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 module.exports = mongoose.model("Task", taskSchema);
