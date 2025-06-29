@@ -1,5 +1,6 @@
 const MindmapTask = require("../models/MindmapTask");
 const MindmapSubmission = require("../models/MindmapSubmission");
+const { updateTaskStatus } = require("./taskController");
 
 /* ──────────────── ADMIN ──────────────── */
 
@@ -9,10 +10,8 @@ const createMindmapTask = async (req, res) => {
     const {
       instructions,
       description,
-      priority,
       dueDate,
       status,
-      assignedTo = [],
       attachments,
       todoChecklist,
       title
@@ -50,10 +49,8 @@ const createMindmapTask = async (req, res) => {
       instructions,
       rubric,
       description,
-      priority,
       dueDate,
       status,
-      assignedTo,
       attachments: parsedAttachments,
       todoChecklist: parsedChecklist,
       createdBy: req.user._id,
@@ -76,20 +73,16 @@ const updateMindmapTask = async (req, res) => {
     const {
       instructions,
       description,
-      priority,
       dueDate,
       status,
-      assignedTo,
       attachments,
       todoChecklist
     } = req.body;
 
     if (instructions !== undefined) task.instructions = instructions;
     if (description !== undefined) task.description = description;
-    if (priority !== undefined) task.priority = priority;
     if (dueDate !== undefined) task.dueDate = dueDate;
     if (status !== undefined) task.status = status;
-    if (assignedTo !== undefined) task.assignedTo = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
 
     // Rubric update
     const rubricTexts = Array.isArray(req.body.rubric)
@@ -126,6 +119,24 @@ const updateMindmapTask = async (req, res) => {
   }
 };
 
+const updateMindmapStatus = async (req, res) => {
+  try {
+    const mindmap = await  MindmapTask.findById(req.params.id);
+    if (!mindmap) return res.status(404).json({ message: "mindmap not found" });
+
+    mindmap.status = req.body.status || mindmap.status;
+
+    if (mindmap.status === "Completed") {
+      mindmap.todoChecklist.forEach((item) => (item.completed = true));
+      mindmap.progress = 100;
+    }
+
+    await mindmap.save();
+    res.json({ message: "mindmap status updated", mindmap });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 // ✅ Delete task and its submissions
 const deleteMindmapTask = async (req, res) => {
   try {
@@ -253,4 +264,5 @@ module.exports = {
   getAllMindmapTasks,
   getMindmapTaskById,
   getAllSubmissions,
+  updateMindmapStatus,
 };

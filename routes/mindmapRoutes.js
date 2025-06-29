@@ -14,6 +14,7 @@ const {
   getSubmissionsByTask,
   getMySubmission,
   getAllSubmissions,
+  updateMindmapStatus
 } = require("../controllers/mindmapController");
 
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
@@ -27,6 +28,7 @@ router.delete("/:id", protect, adminOnly, deleteMindmapTask);
 router.patch("/:id/score", protect, adminOnly, giveMindmapScore);
 router.get("/:taskId/submissions", protect, adminOnly, getSubmissionsByTask);
 router.get("/submissions", protect, adminOnly, getAllSubmissions);
+router.put("/:id/status", protect, updateMindmapStatus); // Update task status
 
 /* ──────────────── USER ──────────────── */
 router.post("/:taskId/submit", protect, upload.single("pdf"), submitMindmapAnswer);

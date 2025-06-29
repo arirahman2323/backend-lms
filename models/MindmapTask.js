@@ -23,10 +23,6 @@ const mindmapTaskSchema = new mongoose.Schema({
     enum: ["Pending", "In Progress", "Completed"],
     default: "Pending"
   },
-  assignedTo: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }],
   attachments: [{
     name: String,
     url: String
