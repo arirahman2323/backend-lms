@@ -29,12 +29,15 @@ const createMindmapTask = async (req, res) => {
 
     const rubricFiles = req.files || [];
 
+    // Buat data rubric lengkap dengan file URL
     const rubric = rubricTexts.map((text, idx) => ({
       text,
-      file: rubricFiles[idx]?.filename || null,
+      file: rubricFiles[idx]
+        ? `${req.protocol}://${req.get("host")}/uploads/${rubricFiles[idx].filename}`
+        : null,
     }));
 
-    // Parse JSON strings for attachments and checklist
+    // Parse attachments dan todoChecklist (jika dikirim sebagai JSON string)
     let parsedAttachments = [];
     let parsedChecklist = [];
 
@@ -42,9 +45,12 @@ const createMindmapTask = async (req, res) => {
       if (attachments) parsedAttachments = JSON.parse(attachments);
       if (todoChecklist) parsedChecklist = JSON.parse(todoChecklist);
     } catch (err) {
-      return res.status(400).json({ message: "Invalid JSON in attachments or todoChecklist" });
+      return res.status(400).json({
+        message: "Invalid JSON in attachments or todoChecklist"
+      });
     }
 
+    // Simpan ke database
     const task = await MindmapTask.create({
       instructions,
       rubric,
@@ -63,6 +69,7 @@ const createMindmapTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Update mindmap task
 const updateMindmapTask = async (req, res) => {
@@ -93,11 +100,16 @@ const updateMindmapTask = async (req, res) => {
 
     const rubricFiles = req.files || [];
 
-    if (rubricTexts.length > 0 || rubricFiles.length > 0) {
-      task.rubric = rubricTexts.map((text, idx) => ({
-        text,
-        file: rubricFiles[idx]?.filename || null,
-      }));
+    if (rubricTexts.length > 0) {
+      task.rubric = rubricTexts.map((text, idx) => {
+        const existingFile = task.rubric?.[idx]?.file || null;
+        return {
+          text,
+          file: rubricFiles[idx]
+            ? `${req.protocol}://${req.get("host")}/uploads/${rubricFiles[idx].filename}`
+            : existingFile, // gunakan file lama jika tidak diunggah ulang
+        };
+      });
     }
 
     // Parse JSON fields if sent as string
@@ -138,19 +150,51 @@ const updateMindmapStatus = async (req, res) => {
   }
 };
 // ✅ Delete task and its submissions
+const fs = require("fs");
+const path = require("path");
+
 const deleteMindmapTask = async (req, res) => {
   try {
     const task = await MindmapTask.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Mindmap Task not found" });
 
+    // 🔥 Hapus file rubric jika ada
+    if (Array.isArray(task.rubric)) {
+      task.rubric.forEach((r) => {
+        if (r.file) {
+          const filePath = path.join(__dirname, "../uploads", path.basename(r.file));
+          fs.unlink(filePath, (err) => {
+            if (err && err.code !== "ENOENT") {
+              console.error("Failed to delete rubric file:", filePath, err.message);
+            }
+          });
+        }
+      });
+    }
+
+    // 🔥 Hapus semua submission
+    const submissions = await MindmapSubmission.find({ task: task._id });
+
+    for (const sub of submissions) {
+      if (sub.answerPdf) {
+        const subFilePath = path.join(__dirname, "../uploads", path.basename(sub.answerPdf));
+        fs.unlink(subFilePath, (err) => {
+          if (err && err.code !== "ENOENT") {
+            console.error("Failed to delete submission file:", subFilePath, err.message);
+          }
+        });
+      }
+    }
+
     await MindmapSubmission.deleteMany({ task: task._id });
     await task.deleteOne();
 
-    res.json({ message: "Mindmap task deleted" });
+    res.json({ message: "Mindmap task and files deleted" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Score a submission
 const giveMindmapScore = async (req, res) => {
@@ -198,17 +242,25 @@ const submitMindmapAnswer = async (req, res) => {
   try {
     const { taskId } = req.params;
     const file = req.file;
+
     if (!file || file.mimetype !== "application/pdf") {
       return res.status(400).json({ message: "Please upload a valid PDF file" });
     }
 
-    const existing = await MindmapSubmission.findOne({ task: taskId, user: req.user._id });
-    if (existing) return res.status(400).json({ message: "You already submitted" });
+    // Cek jika user sudah pernah submit
+    const existing = await MindmapSubmission.findOne({
+      task: taskId,
+      user: req.user._id,
+    });
+    if (existing) {
+      return res.status(400).json({ message: "You already submitted" });
+    }
 
+    // Simpan dengan URL lengkap
     const submission = await MindmapSubmission.create({
       task: taskId,
       user: req.user._id,
-      answerPdf: file.filename,
+      answerPdf: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
     });
 
     res.status(201).json({ message: "Answer submitted", submission });
@@ -216,6 +268,7 @@ const submitMindmapAnswer = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Get my submission (user)
 const getMySubmission = async (req, res) => {
