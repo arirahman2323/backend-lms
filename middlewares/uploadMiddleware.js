@@ -1,22 +1,25 @@
 const multer = require("multer");
+const path = require("path");
 
-// Configure storage
+// Tempat penyimpanan file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const ext = path.extname(file.originalname);
+    const name = `${Date.now()}-${file.originalname}`;
+    cb(null, name);
   },
 });
 
-// File filter
+// File filter (PDF dan gambar)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+  const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only .jpeg, .jpg and .png formats are allowed"), false);
+    cb(new Error("Only PDF, JPG, JPEG, and PNG files are allowed"), false);
   }
 };
 

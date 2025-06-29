@@ -13,31 +13,43 @@ const {
   getTasksByType,
   updateTaskQuestionsOnly,
   deleteTaskQuestions,
+  getFullTaskSubmissionsByUser
 } = require("../controllers/taskController");
 
 const router = express.Router();
 
-// Task Management Routes
+router.get("/full-submissions/:userId", protect, getFullTaskSubmissionsByUser);
+// Dashboard routes
 router.get("/dashboard-data", protect, getDashboardData);
 router.get("/user-dashboard-data", protect, getUserDashboardData);
-router.get("/", protect, getTasks); // Get all tasks (Admin: all, User: assigned)
-router.get("/:id", protect, getTaskById); // Get task by ID
 
-router.put("/:id", protect, updateTask); // Update task details
-router.delete("/:id", protect, adminOnly, deleteTask); // Delete a task (Admin only)
-router.put("/:id/status", protect, updateTaskStatus); // Update task status
-router.put("/:id/todo", protect, updateTaskChecklist); // Update task checklist
+// Task fetching
+router.get("/", protect, getTasks);
+router.get("/:id", protect, getTaskById);
 
-router.post("/pretest", protect, createTask); // Create a new pretest task
-router.post("/postest", protect, createTask); // Create a new posttest task
-router.post("/problem", protect, createTask); // Create a new problem task
-router.get("/type/:type", protect, getTasksByType);
+// Task modification
+router.put("/:id", protect, updateTask);
+router.delete("/:id", protect, adminOnly, deleteTask);
+router.put("/:id/status", protect, updateTaskStatus);
+router.put("/:id/todo", protect, updateTaskChecklist);
 
+// Create task by type
+router.post("/pretest", protect, createTask);
+router.post("/postest", protect, createTask);
+router.post("/problem", protect, createTask);
+router.post("/refleksi", protect, createTask); // ✅ Ditambahkan
+router.post("/lo", protect, createTask);       // ✅ Ditambahkan
+router.post("/kbk", protect, createTask);      // ✅ Ditambahkan
+
+// Update task questions only
 router.put("/pretest/:id", protect, updateTaskQuestionsOnly);
 router.put("/posttest/:id", protect, updateTaskQuestionsOnly);
 router.put("/problem/:id", protect, updateTaskQuestionsOnly);
 
-// Get chat group info for a specific problem in task
+// Filter task by type
+router.get("/type/:type", protect, getTasksByType);
+
+// Get chat group info for a specific problem
 router.get("/:taskId/problem/:problemId/group", protect, async (req, res) => {
   try {
     const task = await Task.findById(req.params.taskId);
@@ -57,5 +69,8 @@ router.get("/:taskId/problem/:problemId/group", protect, async (req, res) => {
   }
 });
 
+// Delete question from task
 router.delete("/:taskId/questions/:questionId", protect, deleteTaskQuestions);
+
+
 module.exports = router;

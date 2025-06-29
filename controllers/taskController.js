@@ -1,5 +1,8 @@
 const Task = require("../models/Task");
+const TaskSubmission = require("../models/TaskSubmission");
 const Group = require("../models/Group");
+const MindmapTask = require("../models/MindmapTask");
+const MindmapSubmission = require("../models/MindmapSubmission");
 
 // @desc    Get all tasks (both Admin & Member see all tasks)
 // @route   GET /api/tasks
@@ -122,18 +125,31 @@ const createTask = async (req, res) => {
       todoChecklist,
       essayQuestions = [],
       multipleChoiceQuestions = [],
-      problem = [], // <- ditambahkan
+      problem = [],
     } = req.body;
 
+    // Validasi assignedTo harus array
     if (!Array.isArray(assignedTo)) {
       return res.status(400).json({ message: "Assigned to must be an array of user IDs" });
     }
 
-    // Detect type from route
-    const path = req.route.path; // e.g. '/', '/pretest', '/posttest'
+    // Deteksi type berdasarkan path
+    const path = req.route.path;
     const isPretest = path === "/pretest";
     const isPostest = path === "/postest";
     const isProblem = path === "/problem";
+    const isRefleksi = path === "/refleksi";
+    const isLo = path === "/lo";
+    const isKbk = path === "/kbk";
+
+    // Untuk LO/KBK, buang correctAnswer dari soal pilihan ganda
+    let processedMCQ = multipleChoiceQuestions;
+    if (isLo || isKbk) {
+      processedMCQ = multipleChoiceQuestions.map((q) => ({
+        question: q.question,
+        choices: q.choices,
+      }));
+    }
 
     const task = await Task.create({
       title,
@@ -145,20 +161,24 @@ const createTask = async (req, res) => {
       attachments,
       todoChecklist,
       essayQuestions,
-      multipleChoiceQuestions,
+      multipleChoiceQuestions: processedMCQ,
+      problem,
       isPretest,
       isPostest,
       isProblem,
-      problem,
+      isRefleksi,
+      isLo,
+      isKbk,
     });
 
+    // Jika ada problem, buatkan group untuk masing-masing
     const updatedProblem = await Promise.all(
       task.problem.map(async (p, index) => {
         const group = await Group.create({
           name: `${title} - Problem ${index + 1}`,
           members: [...assignedTo, req.user._id],
           taskId: task._id,
-          problemId: p._id, // ✅ DITAMBAHKAN
+          problemId: p._id,
         });
 
         return {
@@ -168,6 +188,7 @@ const createTask = async (req, res) => {
       })
     );
 
+    // Update task dengan groupId pada problem
     task.problem = updatedProblem;
     await task.save();
 
@@ -176,6 +197,8 @@ const createTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 
 // @desc    Update task details
 // @route   PUT /api/tasks/:id
@@ -508,6 +531,69 @@ const getUserDashboardData = async (req, res) => {
   }
 };
 
+// get all full tasks submission
+
+const getFullTaskSubmissionsByUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Ambil semua tugas biasa
+    const tasks = await Task.find()
+      .populate("createdBy", "name email")
+      .lean();
+
+    // Ambil semua tugas mindmap
+    const mindmapTasks = await MindmapTask.find()
+      .populate("createdBy", "name email")
+      .lean();
+
+    // Ambil semua submission mindmap dari user tersebut
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId })
+      .populate("task", "instructions rubric")
+      .lean();
+
+    const formattedMindmaps = mindmapSubmissions.map(sub => ({
+      taskId: sub.task._id,
+      type: "Mindmap",
+      instructions: sub.task.instructions,
+      rubric: sub.task.rubric,
+      answerPdf: sub.answerPdf,
+      score: sub.score,
+      submittedAt: sub.createdAt
+    }));
+
+    // Kalau kamu punya TaskSubmission, ambil submission berdasarkan user
+    const taskSubmissions = await TaskSubmission.find({ user: userId })
+      .populate("task", "title essayQuestions multipleChoiceQuestions")
+      .lean();
+
+    // Untuk sekarang, hanya tampilkan soal saja
+    const formattedTasks = tasks.map(task => ({
+      _id: task._id,
+      title: task.title,
+      type: task.isPretest ? "Pretest" :
+            task.isPostest ? "Postest" :
+            task.isProblem ? "Problem" :
+            task.isRefleksi ? "Refleksi" :
+            task.isLo ? "LO" :
+            task.isKbk ? "KBK" : "General",
+      essayQuestions: task.essayQuestions || [],
+      multipleChoiceQuestions: task.multipleChoiceQuestions || [],
+    }));
+
+    res.json({
+      userId,
+      essayTasks: formattedTasks,
+      mindmapSubmissions: formattedMindmaps
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+
 module.exports = {
   getTasks,
   getTaskById,
@@ -521,4 +607,5 @@ module.exports = {
   getTasksByType,
   updateTaskQuestionsOnly,
   deleteTaskQuestions,
+  getFullTaskSubmissionsByUser,
 };

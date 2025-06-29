@@ -48,6 +48,9 @@ const taskSchema = new mongoose.Schema(
     isPretest: { type: Boolean, default: false },
     isPostest: { type: Boolean, default: false },
     isProblem: { type: Boolean, default: false },
+    isRefleksi: { type: Boolean, default: false },
+    isKbk: { type: Boolean, default: false },
+    isLo: { type: Boolean, default: false },
 
     // ✅ Tambahan baru
     problem: [problemSchema],
