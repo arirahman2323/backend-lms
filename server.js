@@ -14,6 +14,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const taskSubmissionRoutes = require("./routes/taskSubmissionRoutes");
 const sureveiRoutes = require("./routes/surveiRoutes");
 const mindmapRoutes = require("./routes/mindmapRoutes");
+const contentRoutes = require("./routes/contentRoutes");
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/task-submissions", taskSubmissionRoutes);
 app.use("/api/survei", sureveiRoutes);
 app.use("/api/mindmap", mindmapRoutes); // <- mindmap endpoints
+app.use("/api/materials", contentRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => {
