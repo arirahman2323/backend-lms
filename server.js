@@ -16,7 +16,45 @@ const sureveiRoutes = require("./routes/surveiRoutes");
 const mindmapRoutes = require("./routes/mindmapRoutes");
 const contentRoutes = require("./routes/contentRoutes");
 
+const http = require("http");
+const { Server } = require("socket.io");
+
 const app = express();
+const server = http.createServer(app);
+
+// Socket.IO setup
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.IO connection
+io.on("connection", (socket) => {
+  console.log("🟢 New client connected:", socket.id);
+
+  socket.on("join-group", (groupId) => {
+    socket.join(groupId);
+    console.log(`✅ Socket ${socket.id} joined group ${groupId}`);
+  });
+
+  socket.on("leave-group", (groupId) => {
+    socket.leave(groupId);
+    console.log(`👋 Socket ${socket.id} left group ${groupId}`);
+  });
+
+  socket.on("sendMessage", (data) => {
+    console.log("📨 Message:", data);
+    io.emit("receiveMessage", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Client disconnected:", socket.id);
+  });
+});
+
+const groupRoutes = require("./routes/groupRoutes")(io);
 
 // Connect to MongoDB
 connectDB();
@@ -44,6 +82,7 @@ app.use("/api/task-submissions", taskSubmissionRoutes);
 app.use("/api/survei", sureveiRoutes);
 app.use("/api/mindmap", mindmapRoutes); // <- mindmap endpoints
 app.use("/api/materials", contentRoutes);
+app.use("/api/groups", groupRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -58,6 +97,6 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
