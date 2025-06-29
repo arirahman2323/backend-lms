@@ -69,6 +69,114 @@ const createContent = async (req, res) => {
   }
 };
 
+const getContents = async (req, res) => {
+  try {
+    const contents = await Content.find().sort({ createdAt: -1 });
+    res.json(contents);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+const getContentsByType = async (req, res) => {
+  try {
+    const { type } = req.params;
+
+    if (!["materi", "glosarium"].includes(type)) {
+      return res.status(400).json({ message: "Invalid type" });
+    }
+
+    const contents = await Content.find({ type }).sort({ createdAt: -1 });
+    res.json(contents);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+const updateContent = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+    if (!content) {
+      return res.status(404).json({ message: "Content not found" });
+    }
+
+    const {
+      type,
+      title,
+      term,
+      content: newContentText,
+      description,
+      priority,
+      dueDate,
+      assignedTo,
+      attachments,
+      todoChecklist,
+    } = req.body;
+
+    const files = req.files?.map(f => f.path || f.filename) || [];
+
+    // Validasi type (opsional jika tidak ingin mengganti type)
+    if (type && !["materi", "glosarium"].includes(type)) {
+      return res.status(400).json({ message: "Type must be 'materi' or 'glosarium'" });
+    }
+
+    if (type) content.type = type;
+    if (type === "materi" && title !== undefined) content.title = title;
+    if (type === "glosarium" && term !== undefined) content.term = term;
+
+    if (newContentText !== undefined) content.content = newContentText;
+    if (description !== undefined) content.description = description;
+    if (priority !== undefined) content.priority = priority;
+    if (dueDate !== undefined) content.dueDate = dueDate;
+    if (assignedTo !== undefined) {
+      content.assignedTo = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+    }
+
+    // Handle JSON-parsed fields
+    try {
+      if (attachments !== undefined) {
+        content.attachments = typeof attachments === "string" ? JSON.parse(attachments) : attachments;
+      }
+      if (todoChecklist !== undefined) {
+        content.todoChecklist = typeof todoChecklist === "string" ? JSON.parse(todoChecklist) : todoChecklist;
+      }
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid JSON in attachments or todoChecklist" });
+    }
+
+    // Tambah file baru jika ada
+    if (files.length > 0) {
+      content.files = [...content.files, ...files];
+    }
+
+    await content.save();
+    res.json({ message: "Content updated", content });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+const deleteContent = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+    if (!content) {
+      return res.status(404).json({ message: "Content not found" });
+    }
+
+    await content.deleteOne(); // ✅ ganti .remove()
+
+    res.json({ message: "Content deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
 module.exports = {
   createContent,
+  getContents,
+  getContentsByType,
+  deleteContent,
+  updateContent
 };
