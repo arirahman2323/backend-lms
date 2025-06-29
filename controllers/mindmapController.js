@@ -14,7 +14,8 @@ const createMindmapTask = async (req, res) => {
       status,
       assignedTo = [],
       attachments,
-      todoChecklist
+      todoChecklist,
+      title
     } = req.body;
 
     if (!instructions) {
@@ -56,6 +57,7 @@ const createMindmapTask = async (req, res) => {
       attachments: parsedAttachments,
       todoChecklist: parsedChecklist,
       createdBy: req.user._id,
+      title,
     });
 
     res.status(201).json({ message: "Mindmap task created", task });
