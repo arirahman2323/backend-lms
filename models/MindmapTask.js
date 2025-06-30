@@ -36,6 +36,7 @@ const mindmapTaskSchema = new mongoose.Schema({
   }],
   title: { type: String },
   progress: { type: Number, default: 0 },
+  score: { type: Number, default: 0 },
 }, { timestamps: true });
 
 // ✅ Hindari OverwriteModelError saat development

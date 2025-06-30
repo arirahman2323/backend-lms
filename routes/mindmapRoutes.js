@@ -15,6 +15,7 @@ const {
   getMySubmission,
   getAllSubmissions,
   updateMindmapStatus,
+  getSubmissionsByUser,
 } = require("../controllers/mindmapController");
 
 /* ──────────────── ADMIN ──────────────── */

@@ -304,6 +304,16 @@ const getMindmapTaskById = async (req, res) => {
   }
 };
 
+const getSubmissionsByUser = async (req, res) => {
+  try {
+    const submissions = await MindmapSubmission.find({ user: req.params.userId }).populate("task");
+    res.json(submissions);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
 /* ──────────────── EXPORT ──────────────── */
 
 module.exports = {
@@ -318,4 +328,5 @@ module.exports = {
   getMindmapTaskById,
   getAllSubmissions,
   updateMindmapStatus,
+  getSubmissionsByUser
 };

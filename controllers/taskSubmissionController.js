@@ -15,8 +15,8 @@ const submitTaskAnswer = async (req, res) => {
 
     const userId = req.user._id;
 
-    if (type !== "pretest" && type !== "postest" && type !== "problem") {
-      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
+    if (type !== "pretest" && type !== "postest" && type !== "problem" && type !== "lo" && type !== "kbk") {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem', 'lo', or 'kbk'" });
     }
 
     const task = await Task.findById(taskId);
@@ -27,6 +27,15 @@ const submitTaskAnswer = async (req, res) => {
     }
     if (type === "posttest" && !task.isPosttest) {
       return res.status(400).json({ message: "This task is not marked as a posttest" });
+    }
+    if (type === "problem" && !task.isProblem) {
+      return res.status(400).json({ message: "This task is not marked as a problem" });
+    }
+    if (type === "lo" && !task.isLO) {
+      return res.status(400).json({ message: "This task is not marked as a LO" });
+    }
+    if (type === "kbk" && !task.isKBK) {
+      return res.status(400).json({ message: "This task is not marked as a KBK" });
     }
 
     const alreadySubmitted = await TaskSubmission.findOne({ task: taskId, user: userId });
@@ -56,7 +65,7 @@ const getSubmissionsByUser = async (req, res) => {
     const { userId, type } = req.params;
 
     // Validasi tipe
-    const validTypes = ["pretest", "postest", "problem"];
+    const validTypes = ["pretest", "postest", "problem, lo, kbk"];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
@@ -68,6 +77,8 @@ const getSubmissionsByUser = async (req, res) => {
       if (type === "pretest") return sub.task?.isPretest;
       if (type === "postest") return sub.task?.isPostest;
       if (type === "problem") return sub.task?.isProblem;
+      if (type === "lo") return sub.task?.isLO;
+      if (type === "kbk") return sub.task?.isKBK;
     });
 
     res.json({
@@ -190,7 +201,7 @@ const updateTotalScore = async (req, res) => {
     const { score } = req.body;
 
     // Validasi tipe
-    const validTypes = ["pretest", "postest", "problem"];
+    const validTypes = ["pretest", "postest", "problem", "lo", "kbk"];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
@@ -207,6 +218,8 @@ const updateTotalScore = async (req, res) => {
       if (type === "pretest") return sub.task?.isPretest;
       if (type === "postest") return sub.task?.isPostest;
       if (type === "problem") return sub.task?.isProblem;
+      if (type === "lo") return sub.task?.isLO;
+      if (type === "kbk") return sub.task?.isKBK;
     });
 
     const submissionToUpdate = targetSubmissions.find((sub) => sub.task._id.toString() === taskId);
