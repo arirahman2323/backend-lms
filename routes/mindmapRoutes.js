@@ -14,7 +14,7 @@ const {
   getSubmissionsByTask,
   getMySubmission,
   getAllSubmissions,
-  updateMindmapStatus
+  updateMindmapStatus,
 } = require("../controllers/mindmapController");
 
 /* ──────────────── ADMIN ──────────────── */
@@ -30,7 +30,7 @@ router.patch("/:id/score", protect, adminOnly, giveMindmapScore);
 
 // Get submissions (should come before `/:id`)
 router.get("/submissions", protect, adminOnly, getAllSubmissions);
-router.get("/:taskId/submissions", protect, adminOnly, getSubmissionsByTask);
+router.get("/:taskId/submissions", protect, getSubmissionsByTask);
 
 /* ──────────────── USER ──────────────── */
 

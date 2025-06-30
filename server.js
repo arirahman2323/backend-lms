@@ -71,7 +71,15 @@ app.use(
 );
 
 // Static folder for uploads
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(
+  "/uploads",
+  express.static("uploads", {
+    setHeaders: (res, path) => {
+      res.set("Content-Type", "application/pdf");
+      res.set("Content-Disposition", "inline");
+    },
+  })
+);
 
 // Routes
 app.use("/api/auth", authRoutes);
