@@ -30,6 +30,7 @@ const taskSubmissionSchema = new mongoose.Schema(
     essayAnswers: [essayAnswerSchema],
     multipleChoiceAnswers: [mcqAnswerSchema],
     score: { type: Number, default: 0 },
+    explanation: { type: String },
     submittedAt: { type: Date, default: Date.now },
 
     // ✅ Tambahan

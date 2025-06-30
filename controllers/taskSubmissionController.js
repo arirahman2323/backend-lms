@@ -31,10 +31,10 @@ const submitTaskAnswer = async (req, res) => {
     if (type === "problem" && !task.isProblem) {
       return res.status(400).json({ message: "This task is not marked as a problem" });
     }
-    if (type === "lo" && !task.isLO) {
+    if (type === "lo" && !task.isLo) {
       return res.status(400).json({ message: "This task is not marked as a LO" });
     }
-    if (type === "kbk" && !task.isKBK) {
+    if (type === "kbk" && !task.isKbk) {
       return res.status(400).json({ message: "This task is not marked as a KBK" });
     }
 
@@ -70,7 +70,7 @@ const getSubmissionsByUser = async (req, res) => {
       return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem dueDate").lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem isLO isKBK dueDate").lean();
 
     // Filter berdasarkan tipe
     const filtered = submissions.filter((sub) => {
@@ -97,7 +97,7 @@ const getSubmissionsByUser = async (req, res) => {
 // @access  Private (Admin)
 const getAllSubmissions = async (req, res) => {
   try {
-    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPostest dueDate").populate("user", "name email role").lean();
+    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPostest isProblem isLo isKbk dueDate").populate("user", "name email role").lean();
 
     res.json({
       totalSubmissions: submissions.length,
@@ -115,7 +115,7 @@ const getSubmissionsByTask = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest dueDate").populate("user", "name email role");
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest isProblem isLo isKbk dueDate").populate("user", "name email role");
 
     res.json({
       taskId,
@@ -192,18 +192,18 @@ const updateEssayScoresByUserType = async (req, res) => {
   }
 };
 
-// @desc    Update total score of a submission
-// @route   POST /api/task-submissions/:type/:taskId/score/:userId
-// @access  Private (Admin)
+// @desc Update total score of a submission (with explanation for LO/KBK)
+// @route POST /api/task-submissions/:type/:taskId/score/:userId
+// @access Private (Admin)
 const updateTotalScore = async (req, res) => {
   try {
     const { type, taskId, userId } = req.params;
-    const { score } = req.body;
+    const { score, explanation } = req.body;
 
     // Validasi tipe
     const validTypes = ["pretest", "postest", "problem", "lo", "kbk"];
     if (!validTypes.includes(type)) {
-      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', 'problem', 'lo', or 'kbk'" });
     }
 
     if (typeof score !== "number") {
@@ -228,8 +228,17 @@ const updateTotalScore = async (req, res) => {
       return res.status(404).json({ message: "Submission not found for given user, task, and type" });
     }
 
+    // Update score
     submissionToUpdate.score = score;
-    submissionToUpdate.task.status = "Completed"; // optional: ini mengubah status task-nya langsung
+
+    // Tambahkan explanation jika tipe lo atau kbk
+    if (["lo", "kbk"].includes(type)) {
+      submissionToUpdate.explanation = explanation || ""; // Default kosong kalau tidak dikirim
+    }
+
+    // Opsional: ubah status task jadi "Completed"
+    submissionToUpdate.task.status = "Completed";
+
     await submissionToUpdate.save();
 
     res.json({
@@ -241,6 +250,7 @@ const updateTotalScore = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 module.exports = {
   submitTaskAnswer,
