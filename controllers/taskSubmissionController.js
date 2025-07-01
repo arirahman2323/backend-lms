@@ -37,7 +37,7 @@ const submitTaskAnswer = async (req, res) => {
     if (type === "lo" && !task.isLO) {
       return res.status(400).json({ message: "This task is not marked as a LO" });
     }
-    if (type === "kbk" && !task.isKBK) {
+    if (type === "kbk" && !task.isKbk) {
       return res.status(400).json({ message: "This task is not marked as a KBK" });
     }
 
@@ -201,13 +201,13 @@ const updateEssayScoresByUserType = async (req, res) => {
   }
 };
 
-// @desc    Update total score of a submission
-// @route   POST /api/task-submissions/:type/:taskId/score/:userId
-// @access  Private (Admin)
+// @desc Update total score of a submission (with explanation for LO/KBK)
+// @route POST /api/task-submissions/:type/:taskId/score/:userId
+// @access Private (Admin)
 const updateTotalScore = async (req, res) => {
   try {
     const { type, taskId, userId } = req.params;
-    const { score } = req.body;
+    const { score, explanation } = req.body;
 
     // Validasi tipe
     const validTypes = ["pretest", "postest", "problem", "refleksi", "lo", "kbk"];
@@ -238,8 +238,17 @@ const updateTotalScore = async (req, res) => {
       return res.status(404).json({ message: "Submission not found for given user, task, and type" });
     }
 
+    // Update score
     submissionToUpdate.score = score;
-    submissionToUpdate.task.status = "Completed"; // optional: ini mengubah status task-nya langsung
+
+    // Tambahkan explanation jika tipe lo atau kbk
+    if (["lo", "kbk"].includes(type)) {
+      submissionToUpdate.explanation = explanation || ""; // Default kosong kalau tidak dikirim
+    }
+
+    // Opsional: ubah status task jadi "Completed"
+    submissionToUpdate.task.status = "Completed";
+
     await submissionToUpdate.save();
 
     res.json({

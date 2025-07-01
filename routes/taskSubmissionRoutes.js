@@ -2,7 +2,12 @@ const express = require("express");
 const router = express.Router();
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
 
-const { submitTaskAnswer, getSubmissionsByUser, getAllSubmissions, updateEssayScoresBySubmission, updateEssayScoresByUserType, getSubmissionsByTask, updateTotalScore } = require("../controllers/taskSubmissionController");
+const { submitTaskAnswer, 
+    getSubmissionsByUser, 
+    getAllSubmissions, 
+    updateEssayScoresByUserType, 
+    getSubmissionsByTask, 
+    updateTotalScore } = require("../controllers/taskSubmissionController");
 
 // Task Submission Routes
 router.post("/:type/:taskId", protect, submitTaskAnswer);
