@@ -15,8 +15,8 @@ const submitTaskAnswer = async (req, res) => {
 
     const userId = req.user._id;
 
-    if (type !== "pretest" && type !== "postest" && type !== "problem" && type !== "lo" && type !== "kbk") {
-      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem', 'lo', or 'kbk'" });
+    if (type !== "pretest" && type !== "postest" && type !== "problem" && type !== "refleksi" && type !== "lo" && type !== "kbk") {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', 'problem', 'refleksi, 'lo', or 'kbk'" });
     }
 
     const task = await Task.findById(taskId);
@@ -29,6 +29,9 @@ const submitTaskAnswer = async (req, res) => {
       return res.status(400).json({ message: "This task is not marked as a posttest" });
     }
     if (type === "problem" && !task.isProblem) {
+      return res.status(400).json({ message: "This task is not marked as a problem" });
+    }
+    if (type === "refleksi" && !task.isRefleksi) {
       return res.status(400).json({ message: "This task is not marked as a problem" });
     }
     if (type === "lo" && !task.isLO) {
@@ -65,18 +68,19 @@ const getSubmissionsByUser = async (req, res) => {
     const { userId, type } = req.params;
 
     // Validasi tipe
-    const validTypes = ["pretest", "postest", "problem, lo, kbk"];
+    const validTypes = ["pretest", "postest", "problem", "refleksi", "lo", "kbk"];
     if (!validTypes.includes(type)) {
-      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', 'problem', 'refleksi, 'lo', or 'kbk'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem dueDate").lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLO isKBK dueDate").lean();
 
     // Filter berdasarkan tipe
     const filtered = submissions.filter((sub) => {
       if (type === "pretest") return sub.task?.isPretest;
       if (type === "postest") return sub.task?.isPostest;
       if (type === "problem") return sub.task?.isProblem;
+      if (type === "refleksi") return sub.task?.isRefleksi;
       if (type === "lo") return sub.task?.isLO;
       if (type === "kbk") return sub.task?.isKBK;
     });
@@ -97,7 +101,7 @@ const getSubmissionsByUser = async (req, res) => {
 // @access  Private (Admin)
 const getAllSubmissions = async (req, res) => {
   try {
-    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPostest dueDate").populate("user", "name email role").lean();
+    const submissions = await TaskSubmission.find().populate("task", "title isPretest isPostest isProblem isRefleksi isLO isKBK dueDate").populate("user", "name email role").lean();
 
     res.json({
       totalSubmissions: submissions.length,
@@ -115,7 +119,7 @@ const getSubmissionsByTask = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest dueDate").populate("user", "name email role");
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLO isKBK dueDate").populate("user", "name email role");
 
     res.json({
       taskId,
@@ -140,15 +144,20 @@ const updateEssayScoresByUserType = async (req, res) => {
     const { scores = [] } = req.body;
 
     // Validasi tipe
-    if (type !== "pretest" && type !== "postest") {
-      return res.status(400).json({ message: "Type must be 'pretest' or 'postest'" });
+    if (type !== "pretest" && type !== "postest" && type !== "refleksi") {
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'refleksi'" });
     }
 
     // Ambil semua submission milik user
     const submissions = await TaskSubmission.find({ user: userId }).populate("task");
 
     // Filter submission berdasarkan jenis tugas
-    const targetSubmissions = submissions.filter((sub) => (type === "pretest" ? sub.task?.isPretest : sub.task?.isPostest));
+    const targetSubmissions = submissions.filter((sub) => {
+      if (type === "pretest") return sub.task?.isPretest;
+      if (type === "postest") return sub.task?.isPostest;
+      if (type === "refleksi") return sub.task?.isRefleksi;
+      return false;
+    });
 
     let totalUpdated = 0;
 
@@ -201,9 +210,9 @@ const updateTotalScore = async (req, res) => {
     const { score } = req.body;
 
     // Validasi tipe
-    const validTypes = ["pretest", "postest", "problem", "lo", "kbk"];
+    const validTypes = ["pretest", "postest", "problem", "refleksi", "lo", "kbk"];
     if (!validTypes.includes(type)) {
-      return res.status(400).json({ message: "Type must be 'pretest', 'postest', or 'problem'" });
+      return res.status(400).json({ message: "Type must be 'pretest', 'postest', 'problem', 'refleksi, 'lo', or 'kbk'" });
     }
 
     if (typeof score !== "number") {
@@ -218,6 +227,7 @@ const updateTotalScore = async (req, res) => {
       if (type === "pretest") return sub.task?.isPretest;
       if (type === "postest") return sub.task?.isPostest;
       if (type === "problem") return sub.task?.isProblem;
+      if (type === "refleksi") return sub.task?.isRefleksi;
       if (type === "lo") return sub.task?.isLO;
       if (type === "kbk") return sub.task?.isKBK;
     });

@@ -67,11 +67,13 @@ const getTasksByType = async (req, res) => {
       filter.isPostest = true;
     } else if (type === "problem") {
       filter.isProblem = true;
+    } else if (type === "refleksi") {
+      filter.isRefleksi = true;
     } else if (type === "regular") {
       filter.isPretest = false;
       filter.isPostest = false;
     } else {
-      return res.status(400).json({ message: "Invalid task type. Use pretest or postest" });
+      return res.status(400).json({ message: "Invalid task type. Use pretest, postest, problem, or refleksi" });
     }
 
     const tasks = await Task.find(filter).sort({ createdAt: -1 });
@@ -115,18 +117,7 @@ const getTaskById = async (req, res) => {
 // @access  Private (Admin)
 const createTask = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      priority,
-      dueDate,
-      assignedTo = [],
-      attachments,
-      todoChecklist,
-      essayQuestions = [],
-      multipleChoiceQuestions = [],
-      problem = [],
-    } = req.body;
+    const { title, description, priority, dueDate, assignedTo = [], attachments, todoChecklist, essayQuestions = [], multipleChoiceQuestions = [], problem = [] } = req.body;
 
     // Validasi assignedTo harus array
     if (!Array.isArray(assignedTo)) {
@@ -198,8 +189,6 @@ const createTask = async (req, res) => {
   }
 };
 
-
-
 // @desc    Update task details
 // @route   PUT /api/tasks/:id
 // @access  Private
@@ -248,6 +237,7 @@ const updateTaskQuestionsOnly = async (req, res) => {
     const isPretest = path.includes("/pretest");
     const isPostest = path.includes("/postest");
     const isProblem = path.includes("/problem");
+    const isRefleksi = path === "/refleksi";
 
     if (isPretest && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
@@ -258,6 +248,10 @@ const updateTaskQuestionsOnly = async (req, res) => {
     }
 
     if (isProblem && !task.isProblem) {
+      return res.status(400).json({ message: "This task is not marked as a problem" });
+    }
+
+    if (isRefleksi && !task.isRefleksi) {
       return res.status(400).json({ message: "This task is not marked as a problem" });
     }
 
@@ -538,45 +532,32 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
     const userId = req.params.userId;
 
     // Ambil semua tugas biasa
-    const tasks = await Task.find()
-      .populate("createdBy", "name email")
-      .lean();
+    const tasks = await Task.find().populate("createdBy", "name email").lean();
 
     // Ambil semua tugas mindmap
-    const mindmapTasks = await MindmapTask.find()
-      .populate("createdBy", "name email")
-      .lean();
+    const mindmapTasks = await MindmapTask.find().populate("createdBy", "name email").lean();
 
     // Ambil semua submission mindmap dari user tersebut
-    const mindmapSubmissions = await MindmapSubmission.find({ user: userId })
-      .populate("task", "instructions rubric")
-      .lean();
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "instructions rubric").lean();
 
-    const formattedMindmaps = mindmapSubmissions.map(sub => ({
+    const formattedMindmaps = mindmapSubmissions.map((sub) => ({
       taskId: sub.task._id,
       type: "Mindmap",
       instructions: sub.task.instructions,
       rubric: sub.task.rubric,
       answerPdf: sub.answerPdf,
       score: sub.score,
-      submittedAt: sub.createdAt
+      submittedAt: sub.createdAt,
     }));
 
     // Kalau kamu punya TaskSubmission, ambil submission berdasarkan user
-    const taskSubmissions = await TaskSubmission.find({ user: userId })
-      .populate("task", "title essayQuestions multipleChoiceQuestions")
-      .lean();
+    const taskSubmissions = await TaskSubmission.find({ user: userId }).populate("task", "title essayQuestions multipleChoiceQuestions").lean();
 
     // Untuk sekarang, hanya tampilkan soal saja
-    const formattedTasks = tasks.map(task => ({
+    const formattedTasks = tasks.map((task) => ({
       _id: task._id,
       title: task.title,
-      type: task.isPretest ? "Pretest" :
-            task.isPostest ? "Postest" :
-            task.isProblem ? "Problem" :
-            task.isRefleksi ? "Refleksi" :
-            task.isLo ? "LO" :
-            task.isKbk ? "KBK" : "General",
+      type: task.isPretest ? "Pretest" : task.isPostest ? "Postest" : task.isProblem ? "Problem" : task.isRefleksi ? "Refleksi" : task.isLo ? "LO" : task.isKbk ? "KBK" : "General",
       essayQuestions: task.essayQuestions || [],
       multipleChoiceQuestions: task.multipleChoiceQuestions || [],
     }));
@@ -584,15 +565,12 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
     res.json({
       userId,
       essayTasks: formattedTasks,
-      mindmapSubmissions: formattedMindmaps
+      mindmapSubmissions: formattedMindmaps,
     });
-
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-
 
 module.exports = {
   getTasks,

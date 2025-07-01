@@ -13,7 +13,7 @@ const {
   getTasksByType,
   updateTaskQuestionsOnly,
   deleteTaskQuestions,
-  getFullTaskSubmissionsByUser
+  getFullTaskSubmissionsByUser,
 } = require("../controllers/taskController");
 
 const router = express.Router();
@@ -38,13 +38,14 @@ router.post("/pretest", protect, createTask);
 router.post("/postest", protect, createTask);
 router.post("/problem", protect, createTask);
 router.post("/refleksi", protect, createTask); // ✅ Ditambahkan
-router.post("/lo", protect, createTask);       // ✅ Ditambahkan
-router.post("/kbk", protect, createTask);      // ✅ Ditambahkan
+router.post("/lo", protect, createTask); // ✅ Ditambahkan
+router.post("/kbk", protect, createTask); // ✅ Ditambahkan
 
 // Update task questions only
 router.put("/pretest/:id", protect, updateTaskQuestionsOnly);
 router.put("/posttest/:id", protect, updateTaskQuestionsOnly);
 router.put("/problem/:id", protect, updateTaskQuestionsOnly);
+router.put("/refleksi/:id", protect, updateTaskQuestionsOnly);
 
 // Filter task by type
 router.get("/type/:type", protect, getTasksByType);
@@ -71,6 +72,5 @@ router.get("/:taskId/problem/:problemId/group", protect, async (req, res) => {
 
 // Delete question from task
 router.delete("/:taskId/questions/:questionId", protect, deleteTaskQuestions);
-
 
 module.exports = router;
