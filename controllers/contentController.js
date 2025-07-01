@@ -209,6 +209,34 @@ const deleteContent = async (req, res) => {
 };
 
 
+const deleteContentFilesOnly = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+    if (!content) return res.status(404).json({ message: "Content not found" });
+
+    const { filename } = req.params;
+    const fileIndex = content.files.findIndex((url) => url.includes(filename));
+
+    if (fileIndex === -1) {
+      return res.status(404).json({ message: "File not found in content" });
+    }
+
+    // Hapus file dari sistem file
+    const filepath = path.join(__dirname, "..", "uploads", filename);
+    fs.unlink(filepath, (err) => {
+      if (err) console.warn(`⚠️ File deletion failed: ${err.message}`);
+    });
+
+    // Hapus dari array di MongoDB
+    content.files.splice(fileIndex, 1);
+    await content.save();
+
+    res.json({ message: `File ${filename} deleted`, content });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 
 module.exports = {
   createContent,
@@ -216,5 +244,6 @@ module.exports = {
   getContentsByType,
   deleteContent,
   updateContent,
-  updateContentStatus
+  updateContentStatus,
+  deleteContentFilesOnly
 };
