@@ -1,5 +1,5 @@
 const express = require("express");
-const { createContent, getContents, getContentsByType, deleteContent, updateContent } = require("../controllers/contentController");
+const { createContent, getContents, getContentsByType, deleteContent, updateContent, updateContentStatus } = require("../controllers/contentController");
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
 const { get } = require("mongoose");
 const upload = require("../middlewares/uploadMiddleware");
@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/", protect, adminOnly, upload.array("files"), createContent);
 
 router.put("/:id", protect, adminOnly, upload.array("files"), updateContent);
+router.put("/:id/status", protect, updateContentStatus);
 router.delete("/:id", protect, adminOnly, deleteContent);
 
 router.get("/", protect, getContents);

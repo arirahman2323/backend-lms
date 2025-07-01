@@ -156,6 +156,25 @@ const updateContent = async (req, res) => {
   }
 };
 
+const updateContentStatus = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+    if (!content) return res.status(404).json({ message: "content not found" });
+
+    content.status = req.body.status || content.status;
+
+    if (content.status === "Completed") {
+      content.todoChecklist.forEach((item) => (item.completed = true));
+      content.progress = 100;
+    }
+
+    await content.save();
+
+    res.json({ message: "content status updated", content });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 const fs = require("fs");
 const path = require("path");
@@ -196,5 +215,6 @@ module.exports = {
   getContents,
   getContentsByType,
   deleteContent,
-  updateContent
+  updateContent,
+  updateContentStatus
 };
