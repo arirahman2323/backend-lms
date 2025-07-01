@@ -7,7 +7,7 @@ const TaskSubmission = require("../models/TaskSubmission");
 const submitTaskAnswer = async (req, res) => {
   try {
     const { type, taskId } = req.params;
-    const {
+    let {
       essayAnswers = [],
       multipleChoiceAnswers = [],
       problemAnswer = [], // <- Tambahan baru
@@ -25,8 +25,8 @@ const submitTaskAnswer = async (req, res) => {
     if (type === "pretest" && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
     }
-    if (type === "posttest" && !task.isPosttest) {
-      return res.status(400).json({ message: "This task is not marked as a posttest" });
+    if (type === "postest" && !task.isPostest) {
+      return res.status(400).json({ message: "This task is not marked as a postest" });
     }
     if (type === "problem" && !task.isProblem) {
       return res.status(400).json({ message: "This task is not marked as a problem" });
@@ -44,6 +44,21 @@ const submitTaskAnswer = async (req, res) => {
     const alreadySubmitted = await TaskSubmission.findOne({ task: taskId, user: userId });
     if (alreadySubmitted) {
       return res.status(400).json({ message: "You have already submitted this task" });
+    }
+
+    if (type === "problem") {
+      problemAnswer = problemAnswer.map((ans) => {
+        const matchedProblem = task.problem.find((p) => p._id.toString() === ans.questionId);
+        if (!matchedProblem) {
+          throw new Error("Invalid problem ID");
+        }
+
+        return {
+          questionId: ans.questionId,
+          problem: ans.problem,
+          groupId: matchedProblem.groupId, // ✅ Ambil groupId dari task
+        };
+      });
     }
 
     const submission = await TaskSubmission.create({

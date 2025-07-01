@@ -19,6 +19,7 @@ const problemAnswerSchema = new mongoose.Schema(
   {
     questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
     problem: { type: String, required: true },
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: "Group", required: true },
   },
   { _id: false }
 );
