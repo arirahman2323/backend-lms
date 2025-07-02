@@ -248,6 +248,8 @@ const updateTaskQuestionsOnly = async (req, res) => {
     const isPostest = path.includes("/postest");
     const isProblem = path.includes("/problem");
     const isRefleksi = path === "/refleksi";
+    const isLo = path === "/lo";
+    const isKbk = path === "/kbk";
 
     if (isPretest && !task.isPretest) {
       return res.status(400).json({ message: "This task is not marked as a pretest" });
@@ -262,7 +264,15 @@ const updateTaskQuestionsOnly = async (req, res) => {
     }
 
     if (isRefleksi && !task.isRefleksi) {
-      return res.status(400).json({ message: "This task is not marked as a problem" });
+      return res.status(400).json({ message: "This task is not marked as a refleksi" });
+    }
+
+    if (isLo && !task.isLo) {
+      return res.status(400).json({ message: "This task is not marked as a LO" });
+    }
+
+    if (isKbk && !task.isKbk) {
+      return res.status(400).json({ message: "This task is not marked as a KBK" });
     }
 
     if (essayQuestions !== undefined) {

@@ -24,7 +24,7 @@ const problemAnswerSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const taskSubmissionSchema = new mongoose.Schema(
+const taskSubmission = new mongoose.Schema(
   {
     task: { type: mongoose.Schema.Types.ObjectId, ref: "Task", required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -32,6 +32,7 @@ const taskSubmissionSchema = new mongoose.Schema(
     multipleChoiceAnswers: [mcqAnswerSchema],
     score: { type: Number, default: 0 },
     explanation: { type: String },
+    feedbackFile: { type: String }, // File path for feedback PDF
     submittedAt: { type: Date, default: Date.now },
 
     // ✅ Tambahan
@@ -40,4 +41,4 @@ const taskSubmissionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("TaskSubmission", taskSubmissionSchema);
+module.exports = mongoose.model("TaskSubmission", taskSubmission);

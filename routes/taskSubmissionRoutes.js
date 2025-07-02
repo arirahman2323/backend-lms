@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../middlewares/uploadMiddleware");
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
 
 const { submitTaskAnswer, 
@@ -20,6 +21,6 @@ router.post("/score-essay/:type/:userId", protect, adminOnly, updateEssayScoresB
 // get submissions by task
 router.get("/task/:taskId", protect, adminOnly, getSubmissionsByTask);
 // Update total score of a submission
-router.post("/:type/:taskId/score/:userId", protect, adminOnly, updateTotalScore);
+router.put("/:type/:taskId/score/:userId", protect, adminOnly,upload.single("feedbackFile"),updateTotalScore);
 
 module.exports = router;
