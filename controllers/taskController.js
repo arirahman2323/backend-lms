@@ -3,6 +3,7 @@ const TaskSubmission = require("../models/TaskSubmission");
 const Group = require("../models/Group");
 const MindmapTask = require("../models/MindmapTask");
 const MindmapSubmission = require("../models/MindmapSubmission");
+const { options } = require("../routes/contentRoutes");
 
 // @desc    Get all tasks (both Admin & Member see all tasks)
 // @route   GET /api/tasks
@@ -117,7 +118,16 @@ const getTaskById = async (req, res) => {
 // @access  Private (Admin)
 const createTask = async (req, res) => {
   try {
-    const { title, description, priority, dueDate, assignedTo = [], attachments, todoChecklist, essayQuestions = [], multipleChoiceQuestions = [], problem = [] } = req.body;
+    const { title, 
+      description, 
+      priority, 
+      dueDate, 
+      assignedTo = [], 
+      attachments, 
+      todoChecklist, 
+      essayQuestions = [], 
+      multipleChoiceQuestions = [], 
+      problem = [] } = req.body;
 
     // Validasi assignedTo harus array
     if (!Array.isArray(assignedTo)) {
@@ -138,7 +148,7 @@ const createTask = async (req, res) => {
     if (isLo || isKbk) {
       processedMCQ = multipleChoiceQuestions.map((q) => ({
         question: q.question,
-        choices: q.choices,
+        options: q.options,
       }));
     }
 

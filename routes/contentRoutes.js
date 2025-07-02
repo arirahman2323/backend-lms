@@ -7,7 +7,6 @@ const { createContent,
     updateContentStatus,
     deleteContentFilesOnly } = require("../controllers/contentController");
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
-const { get } = require("mongoose");
 const upload = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
