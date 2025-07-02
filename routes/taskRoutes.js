@@ -46,6 +46,8 @@ router.put("/pretest/:id", protect, updateTaskQuestionsOnly);
 router.put("/posttest/:id", protect, updateTaskQuestionsOnly);
 router.put("/problem/:id", protect, updateTaskQuestionsOnly);
 router.put("/refleksi/:id", protect, updateTaskQuestionsOnly);
+router.put("/lo/:id", protect, updateTaskQuestionsOnly);
+router.put("/kbk/:id", protect, updateTaskQuestionsOnly);
 
 // Filter task by type
 router.get("/type/:type", protect, getTasksByType);
