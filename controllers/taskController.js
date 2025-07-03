@@ -70,11 +70,15 @@ const getTasksByType = async (req, res) => {
       filter.isProblem = true;
     } else if (type === "refleksi") {
       filter.isRefleksi = true;
+    } else if (type === "lo") {
+      filter.isLo = true;
+    } else if (type === "kbk") {
+      filter.isKbk = true;
     } else if (type === "regular") {
       filter.isPretest = false;
       filter.isPostest = false;
     } else {
-      return res.status(400).json({ message: "Invalid task type. Use pretest, postest, problem, or refleksi" });
+      return res.status(400).json({ message: "Invalid task type. Use pretest, postest, problem, refleksi, lo or kbk" });
     }
 
     const tasks = await Task.find(filter).sort({ createdAt: -1 });
@@ -118,16 +122,7 @@ const getTaskById = async (req, res) => {
 // @access  Private (Admin)
 const createTask = async (req, res) => {
   try {
-    const { title, 
-      description, 
-      priority, 
-      dueDate, 
-      assignedTo = [], 
-      attachments, 
-      todoChecklist, 
-      essayQuestions = [], 
-      multipleChoiceQuestions = [], 
-      problem = [] } = req.body;
+    const { title, description, priority, dueDate, assignedTo = [], attachments, todoChecklist, essayQuestions = [], multipleChoiceQuestions = [], problem = [] } = req.body;
 
     // Validasi assignedTo harus array
     if (!Array.isArray(assignedTo)) {

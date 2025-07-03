@@ -88,7 +88,7 @@ const getSubmissionsByUser = async (req, res) => {
       return res.status(400).json({ message: "Type must be 'pretest', 'postest', 'problem', 'refleksi, 'lo', or 'kbk'" });
     }
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLO isKBK dueDate").lean();
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLo isKbk dueDate").lean();
 
     // Filter berdasarkan tipe
     const filtered = submissions.filter((sub) => {
@@ -96,8 +96,8 @@ const getSubmissionsByUser = async (req, res) => {
       if (type === "postest") return sub.task?.isPostest;
       if (type === "problem") return sub.task?.isProblem;
       if (type === "refleksi") return sub.task?.isRefleksi;
-      if (type === "lo") return sub.task?.isLO;
-      if (type === "kbk") return sub.task?.isKBK;
+      if (type === "lo") return sub.task?.isLo;
+      if (type === "kbk") return sub.task?.isKbk;
     });
 
     res.json({
@@ -134,7 +134,7 @@ const getSubmissionsByTask = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLO isKBK dueDate").populate("user", "name email role");
+    const submissions = await TaskSubmission.find({ task: taskId }).populate("task", "title isPretest isPostest isProblem isRefleksi isLo isKbk dueDate").populate("user", "name email role");
 
     res.json({
       taskId,
@@ -260,9 +260,7 @@ const updateTotalScore = async (req, res) => {
     });
 
     // Temukan submission dengan taskId
-    const submissionToUpdate = targetSubmissions.find(
-      (sub) => sub.task._id.toString() === taskId
-    );
+    const submissionToUpdate = targetSubmissions.find((sub) => sub.task._id.toString() === taskId);
 
     if (!submissionToUpdate) {
       return res.status(404).json({
@@ -299,8 +297,6 @@ const updateTotalScore = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
   submitTaskAnswer,
