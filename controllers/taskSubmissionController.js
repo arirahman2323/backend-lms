@@ -255,7 +255,7 @@ const updateTotalScore = async (req, res) => {
       if (type === "problem") return sub.task?.isProblem;
       if (type === "refleksi") return sub.task?.isRefleksi;
       if (type === "lo") return sub.task?.isLo;
-      if (type === "kbk") return sub.task?.isKBK;
+      if (type === "kbk") return sub.task?.isKbk;
       return false;
     });
 
