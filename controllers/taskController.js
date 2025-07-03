@@ -3,6 +3,9 @@ const TaskSubmission = require("../models/TaskSubmission");
 const Group = require("../models/Group");
 const MindmapTask = require("../models/MindmapTask");
 const MindmapSubmission = require("../models/MindmapSubmission");
+const Content = require("../models/Content");
+const Survei = require("../models/Survei");
+
 const { options } = require("../routes/contentRoutes");
 
 // @desc    Get all tasks (both Admin & Member see all tasks)
@@ -546,14 +549,48 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
   try {
     const userId = req.params.userId;
 
+    // Ambil semua konten yang dibuat oleh user (kalau applicable)
+    const contents = await Content.find({ createdBy: userId }).lean();
+
+    // Ambil semua survei yang dibuat atau dijawab user
+    const surveis = await Survei.find({ user: userId }).lean();
+
     // Ambil semua tugas biasa
     const tasks = await Task.find().populate("createdBy", "name email").lean();
 
-    // Ambil semua tugas mindmap
+    // Ambil semua submissions ke Task oleh user
+    const taskSubmissions = await TaskSubmission.find({ user: userId })
+      .populate("task", "title essayQuestions multipleChoiceQuestions")
+      .lean();
+
+    // Format tugas
+    const formattedTasks = tasks.map((task) => ({
+      _id: task._id,
+      title: task.title,
+      type: task.isPretest
+        ? "Pretest"
+        : task.isPostest
+        ? "Postest"
+        : task.isProblem
+        ? "Problem"
+        : task.isRefleksi
+        ? "Refleksi"
+        : task.isLo
+        ? "LO"
+        : task.isKbk
+        ? "KBK"
+        : "General",
+      essayQuestions: task.essayQuestions || [],
+      multipleChoiceQuestions: task.multipleChoiceQuestions || [],
+    }));
+
+    // Ambil semua mindmap task
     const mindmapTasks = await MindmapTask.find().populate("createdBy", "name email").lean();
 
-    // Ambil semua submission mindmap dari user tersebut
-    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "instructions rubric").lean();
+    // Ambil submission mindmap oleh user
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId })
+      .populate("task", "instructions rubric")
+      .lean();
 
     const formattedMindmaps = mindmapSubmissions.map((sub) => ({
       taskId: sub.task._id,
@@ -565,27 +602,20 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
       submittedAt: sub.createdAt,
     }));
 
-    // Kalau kamu punya TaskSubmission, ambil submission berdasarkan user
-    const taskSubmissions = await TaskSubmission.find({ user: userId }).populate("task", "title essayQuestions multipleChoiceQuestions").lean();
-
-    // Untuk sekarang, hanya tampilkan soal saja
-    const formattedTasks = tasks.map((task) => ({
-      _id: task._id,
-      title: task.title,
-      type: task.isPretest ? "Pretest" : task.isPostest ? "Postest" : task.isProblem ? "Problem" : task.isRefleksi ? "Refleksi" : task.isLo ? "LO" : task.isKbk ? "KBK" : "General",
-      essayQuestions: task.essayQuestions || [],
-      multipleChoiceQuestions: task.multipleChoiceQuestions || [],
-    }));
-
     res.json({
       userId,
+      contents,
+      surveis,
       essayTasks: formattedTasks,
+      taskSubmissions,
+      mindmapTasks,
       mindmapSubmissions: formattedMindmaps,
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 module.exports = {
   getTasks,
