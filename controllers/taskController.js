@@ -560,7 +560,7 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
 
     // Ambil semua submissions ke Task oleh user
     const taskSubmissions = await TaskSubmission.find({ user: userId })
-      .populate("task", "title essayQuestions multipleChoiceQuestions")
+      .populate("task", "title essayQuestions multipleChoiceQuestions problem")
       .lean();
 
     // Format tugas
@@ -568,20 +568,21 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
       _id: task._id,
       title: task.title,
       type: task.isPretest
-        ? "Pretest"
+        ? "pretest"
         : task.isPostest
-        ? "Postest"
+        ? "postest"
         : task.isProblem
-        ? "Problem"
+        ? "problem"
         : task.isRefleksi
-        ? "Refleksi"
+        ? "refleksi"
         : task.isLo
-        ? "LO"
+        ? "lo"
         : task.isKbk
-        ? "KBK"
-        : "General",
+        ? "kbk"
+        : "general",
       essayQuestions: task.essayQuestions || [],
       multipleChoiceQuestions: task.multipleChoiceQuestions || [],
+      problem: task.problem || [],
     }));
 
     // Ambil semua mindmap task
@@ -594,7 +595,7 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
 
     const formattedMindmaps = mindmapSubmissions.map((sub) => ({
       taskId: sub.task._id,
-      type: "Mindmap",
+      type: "mindmap",
       instructions: sub.task.instructions,
       rubric: sub.task.rubric,
       answerPdf: sub.answerPdf,
