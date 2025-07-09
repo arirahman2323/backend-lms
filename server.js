@@ -81,6 +81,8 @@ app.use(
   })
 );
 
+app.use("/public", express.static(path.join(__dirname, "public")));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

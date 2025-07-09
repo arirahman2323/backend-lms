@@ -14,11 +14,13 @@ const {
   updateTaskQuestionsOnly,
   deleteTaskQuestions,
   getFullTaskSubmissionsByUser,
+  downloadEportfolioAsPdf,
 } = require("../controllers/taskController");
 
 const router = express.Router();
 
 router.get("/full-submissions/:userId", protect, getFullTaskSubmissionsByUser);
+router.get("/eportfolio/:userId/download", protect, downloadEportfolioAsPdf);
 // Dashboard routes
 router.get("/dashboard-data", protect, getDashboardData);
 router.get("/user-dashboard-data", protect, getUserDashboardData);

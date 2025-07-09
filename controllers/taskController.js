@@ -1,3 +1,9 @@
+const puppeteer = require("puppeteer");
+const { PDFDocument } = require("pdf-lib");
+const fs = require("fs/promises");
+const path = require("path");
+
+const User = require("../models/User");
 const Task = require("../models/Task");
 const TaskSubmission = require("../models/TaskSubmission");
 const Group = require("../models/Group");
@@ -559,27 +565,13 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
     const tasks = await Task.find().populate("createdBy", "name email").lean();
 
     // Ambil semua submissions ke Task oleh user
-    const taskSubmissions = await TaskSubmission.find({ user: userId })
-      .populate("task", "title essayQuestions multipleChoiceQuestions problem")
-      .lean();
+    const taskSubmissions = await TaskSubmission.find({ user: userId }).populate("task", "title essayQuestions multipleChoiceQuestions problem").lean();
 
     // Format tugas
     const formattedTasks = tasks.map((task) => ({
       _id: task._id,
       title: task.title,
-      type: task.isPretest
-        ? "pretest"
-        : task.isPostest
-        ? "postest"
-        : task.isProblem
-        ? "problem"
-        : task.isRefleksi
-        ? "refleksi"
-        : task.isLo
-        ? "lo"
-        : task.isKbk
-        ? "kbk"
-        : "general",
+      type: task.isPretest ? "pretest" : task.isPostest ? "postest" : task.isProblem ? "problem" : task.isRefleksi ? "refleksi" : task.isLo ? "lo" : task.isKbk ? "kbk" : "general",
       essayQuestions: task.essayQuestions || [],
       multipleChoiceQuestions: task.multipleChoiceQuestions || [],
       problem: task.problem || [],
@@ -589,9 +581,7 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
     const mindmapTasks = await MindmapTask.find().populate("createdBy", "name email").lean();
 
     // Ambil submission mindmap oleh user
-    const mindmapSubmissions = await MindmapSubmission.find({ user: userId })
-      .populate("task", "instructions rubric")
-      .lean();
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "instructions rubric").lean();
 
     const formattedMindmaps = mindmapSubmissions.map((sub) => ({
       taskId: sub.task._id,
@@ -617,6 +607,177 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
   }
 };
 
+const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
+  // Fungsi helper untuk membuat tabel nilai dari data
+  let scoreTableRows = "";
+  [...submissions, ...mindmaps].forEach((item, idx) => {
+    scoreTableRows += `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${item.task?.title || item.type}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.score || 0}</td>
+      </tr>
+    `;
+  });
+
+  // URL absolut ke aset statis di server Anda
+  const coverBackgroundUrl = `${process.env.API_BASE_URL}/public/cover-background.jpg`;
+  const profilePicUrl = `${process.env.API_BASE_URL}/public/avatar.png`;
+
+  return `
+    <html>
+      <head>
+        <style>
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; }
+          .page { page-break-before: always; padding: 40px; }
+          .cover-page {
+            width: 100vw;
+            height: 100vh;
+            background-image: url('${coverBackgroundUrl}');
+            background-size: cover;
+            background-position: center;
+            position: relative; /* Diperlukan untuk positioning absolut anak elemen */
+          }
+          .cover-content {
+            position: absolute;
+            top: 69.5%; /* Sesuaikan posisi vertikal */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; /* Lebar area konten */
+            padding: 20px;
+            text-align: center;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 4px solid white;
+            background-color: #a1aebf;
+          }
+            .user-details {
+            text-align: center; 
+            margin-left: 50px;
+          }
+          .user-details h2 {
+            margin: 0;
+            margin-top: 15px;
+            font-size: 24px;
+          }
+          .user-details p {
+            margin: 8px 0;
+            font-size: 18px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cover-page">
+          <div class="cover-content">
+            <img 
+              src="${user.profileImageUrl || profilePicUrl}" 
+              alt="Profile" 
+              class="profile-pic"
+            >
+            <div class="user-details">
+              <h2>${user.name}</h2>
+              <p>${user.nim}</p>
+              <p>${user.offering}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="page">
+          <h2>Rekapitulasi Nilai</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">No</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Tugas</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Skor</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${scoreTableRows}
+              <tr style="font-weight: bold;">
+                <td colspan="2" style="border: 1px solid #ddd; padding: 8px; text-align: center;">Rata-rata</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${averageScore}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+const downloadEportfolioAsPdf = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // 1. Ambil semua data dari database (logika mirip dengan controller Anda)
+    const user = await User.findById(userId).lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title").lean();
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "title").lean();
+
+    const scores = [...submissions, ...mindmapSubmissions].map((item) => item.score).filter((s) => typeof s === "number");
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const averageScore = avg.toFixed(2);
+
+    // 2. Buat PDF utama dari HTML menggunakan Puppeteer
+    const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
+    const page = await browser.newPage();
+    const htmlContent = createEportfolioHtml(user, submissions, mindmapSubmissions, averageScore);
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    const mainPdfBytes = await page.pdf({ format: "A4", printBackground: true });
+    await browser.close();
+
+    // 3. Gabungkan dengan PDF lampiran menggunakan pdf-lib
+    const mergedPdf = await PDFDocument.create();
+    const mainPdfDoc = await PDFDocument.load(mainPdfBytes);
+    const copiedMainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
+    copiedMainPages.forEach((page) => mergedPdf.addPage(page));
+
+    const fileUrlsToMerge = [];
+    submissions.forEach((sub) => sub.feedbackFile && fileUrlsToMerge.push(sub.feedbackFile));
+    mindmapSubmissions.forEach((sub) => {
+      sub.rubric?.forEach((r) => r.file && fileUrlsToMerge.push(r.file));
+      if (sub.answerPdf) fileUrlsToMerge.push(sub.answerPdf);
+    });
+
+    for (const fileUrl of fileUrlsToMerge) {
+      try {
+        // 1. Decode URL untuk mengubah %20 menjadi spasi
+        const decodedPathname = decodeURIComponent(new URL(fileUrl).pathname);
+        const filename = path.basename(decodedPathname);
+
+        // 2. Buat path lokal yang benar
+        const localPath = path.join(__dirname, "..", "uploads", filename);
+
+        const fileBytes = await fs.readFile(localPath);
+        const pdfToMerge = await PDFDocument.load(fileBytes);
+        const copiedPages = await mergedPdf.copyPages(pdfToMerge, pdfToMerge.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      } catch (err) {
+        console.warn(`Gagal membaca atau menggabungkan file ${fileUrl}: ${err.message}`);
+      }
+    }
+
+    // 4. Kirim hasil akhir ke user
+    const mergedPdfBytes = await mergedPdf.save();
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="E-Portfolio - ${user.name}.pdf"`);
+    res.send(Buffer.from(mergedPdfBytes));
+  } catch (err) {
+    console.error("Gagal membuat e-portfolio:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 module.exports = {
   getTasks,
@@ -632,4 +793,5 @@ module.exports = {
   updateTaskQuestionsOnly,
   deleteTaskQuestions,
   getFullTaskSubmissionsByUser,
+  downloadEportfolioAsPdf,
 };
