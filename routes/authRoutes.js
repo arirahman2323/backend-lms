@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser, loginUser, getUserProfile, updateUserProfile, logoutUser } = require("../controllers/authController");
+const { registerUser, loginUser, getUserProfile, updateUserProfile, logoutUser, forgotPassword, resetPassword } = require("../controllers/authController");
 const { protect } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
 
@@ -19,4 +19,6 @@ router.post("/upload-image", upload.single("image"), (req, res) => {
   res.status(200).json({ imageUrl });
 });
 
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 module.exports = router;

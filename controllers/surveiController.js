@@ -13,13 +13,13 @@ const getSurvei = async (req, res) => {
 // POST new survei
 const postSurvei = async (req, res) => {
   try {
-    const { idUser, typeSurvei, nilai } = req.body;
+    const { idUser, typeSurvei, nilai, idTask } = req.body;
 
-    if (!idUser || !typeSurvei || typeof nilai !== "number") {
+    if (!idUser || !typeSurvei || typeof nilai !== "number" || !idTask) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const survei = await Survei.create({ idUser, typeSurvei, nilai });
+    const survei = await Survei.create({ idUser, typeSurvei, nilai, idTask });
     res.status(201).json(survei);
   } catch (error) {
     res.status(500).json({ message: "Failed to create survei", error: error.message });

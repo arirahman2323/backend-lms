@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail"); // util untuk mengirim email
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -150,4 +152,67 @@ const logoutUser = async (req, res) => {
     return res.status(500).json({ message: "Logout error", error: error.message });
   }
 };
-module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, logoutUser };
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Email tidak ditemukan" });
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    await user.save({ validateBeforeSave: false });
+
+    const resetURL = `${process.env.RESET_PASSWORD_ORIGIN}/${resetToken}`;
+    const html = `
+      <p>Halo ${user.name},</p>
+      <p>Klik link berikut untuk mengatur ulang password Anda:</p>
+      <a href="${resetURL}" target="_blank">${resetURL}</a>
+      <p>Link ini hanya berlaku selama 15 menit.</p>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Reset Password",
+      html,
+    });
+
+    res.status(200).json({ message: "Link reset telah dikirim ke email Anda." });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal kirim email", error: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user)
+      return res.status(400).json({ message: "Token tidak valid atau telah kedaluwarsa" });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password berhasil direset" });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal reset password", error: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, logoutUser, forgotPassword, resetPassword };
