@@ -3,6 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
+const mime = require("mime-types");
 
 const connectDB = require("./config/db");
 
@@ -70,13 +71,20 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static folder for uploads
+// Serve static files
 app.use(
   "/uploads",
   express.static("uploads", {
     setHeaders: (res, path) => {
-      res.set("Content-Type", "application/pdf");
-      res.set("Content-Disposition", "inline");
+      const contentType = mime.lookup(path) || "application/octet-stream"; // fallback
+      res.set("Content-Type", contentType);
+
+      // Untuk PDF dan gambar, tampilkan langsung di browser
+      if (contentType === "application/pdf" || contentType.startsWith("image/")) {
+        res.set("Content-Disposition", "inline");
+      } else {
+        res.set("Content-Disposition", "attachment");
+      }
     },
   })
 );
