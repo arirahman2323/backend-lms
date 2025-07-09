@@ -60,8 +60,6 @@ const groupRoutes = require("./routes/groupRoutes")(io);
 connectDB();
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "*",
@@ -69,6 +67,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Static folder for uploads
 app.use(
