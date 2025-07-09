@@ -4,15 +4,17 @@ const {
   postSurvei,
   updateSurvei,
   deleteSurvei,
+  getSurveiByIdUser,
 } = require("../controllers/surveiController");
 
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, adminOnly } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-router.get("/", protect, getSurvei);
-router.post("/", protect, postSurvei);
-router.put("/:id", protect, updateSurvei);
-router.delete("/:id", protect, deleteSurvei);
+router.get("/", protect, adminOnly, getSurvei);
+router.get("/:id", protect, getSurveiByIdUser); // Assuming you want to get a specific survey by ID
+router.post("/", protect, adminOnly, postSurvei);
+router.put("/:id", protect, adminOnly, updateSurvei);
+router.delete("/:id", protect, adminOnly, deleteSurvei);
 
 module.exports = router;
