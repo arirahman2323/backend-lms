@@ -607,8 +607,7 @@ const getFullTaskSubmissionsByUser = async (req, res) => {
   }
 };
 
-const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
-  // Fungsi helper untuk membuat tabel nilai dari data
+const createEportfolioHtml = (user, submissions, mindmaps, averageScore, allTaskSubmissions = [], mindmapSubmissions = []) => {
   let scoreTableRows = "";
   [...submissions, ...mindmaps].forEach((item, idx) => {
     scoreTableRows += `
@@ -620,30 +619,96 @@ const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
     `;
   });
 
-  // URL absolut ke aset statis di server Anda
   const coverBackgroundUrl = `${process.env.API_BASE_URL}/public/cover-background.jpg`;
   const profilePicUrl = `${process.env.API_BASE_URL}/public/avatar.png`;
+
+  // Render soal dan jawaban
+  let taskAnswersHtml = "";
+  allTaskSubmissions.forEach((submission, idx) => {
+    const taskTitle = submission.task?.title || `Tugas ${idx + 1}`;
+    taskAnswersHtml += `
+      <div style="margin-bottom: 40px;">
+        <h3 style="font-size: 20px; margin-bottom: 10px;">${taskTitle}</h3>
+    `;
+
+    // Essay
+    (submission.task?.essayQuestions || []).forEach((q, i) => {
+      const answer = submission.essayAnswers?.find((ea) => ea.questionId.toString() === q._id.toString());
+      taskAnswersHtml += `
+        <p><strong>- Essay ${i + 1}:</strong> <em>${q.question}</em></p>
+        <p style="margin-left: 20px;">Jawaban: ${answer?.answer || "Belum dijawab"}</p>
+      `;
+    });
+
+    // Multiple Choice
+    (submission.task?.multipleChoiceQuestions || []).forEach((q, i) => {
+      const answer = submission.multipleChoiceAnswers?.find((mc) => mc.questionId.toString() === q._id.toString());
+      taskAnswersHtml += `
+        <p><strong>- Pilihan Ganda ${i + 1}:</strong> <em>${q.question}</em></p>
+        <p style="margin-left: 20px;">Jawaban: ${answer?.selectedOption || "Belum dijawab"}</p>
+      `;
+    });
+
+    // Problem
+    (submission.task?.problem || [])
+      .filter((p) => submission.problemAnswer?.some((pa) => pa.questionId.toString() === p._id.toString()))
+      .forEach((p) => {
+        const answer = submission.problemAnswer?.find((pa) => pa.questionId.toString() === p._id.toString());
+
+        const originalIndex = (submission.task?.problem || []).findIndex((orig) => orig._id.toString() === p._id.toString());
+
+        taskAnswersHtml += `
+      <p><strong>- Problem Kelompok ${originalIndex + 1}:</strong> <em>${p.problem || "(Soal belum tersedia)"}</em></p>
+      <p style="margin-left: 20px;">Jawaban: ${answer?.problem || "Belum dijawab"}</p>
+    `;
+      });
+
+    // File feedback info
+    if (submission.feedbackFile) {
+      taskAnswersHtml += `
+        <p style="margin-top: 10px; font-style: italic; color: gray;">[File Feedback PDF tersedia di halaman terakhir]</p>
+      `;
+    }
+
+    taskAnswersHtml += `</div>`;
+  });
+
+  // Mindmap
+  let mindmapHtml = "";
+  mindmapSubmissions.forEach((mindmap, idx) => {
+    mindmapHtml += `
+      <div style="margin-bottom: 40px;">
+        <h3 style="font-size: 20px;">${mindmap.task?.title || `Mindmap`}</h3>
+        <p><strong>- Instruksi:</strong> ${mindmap.task?.instructions}</p>
+        <p><strong>- Rubrik:</strong></p>
+        <ul>
+          ${(mindmap.task?.rubric || []).map((r) => `<li>${r.text}</li>`).join("")}
+        </ul>
+        <p style="font-style: italic; color: gray;">[Jawaban PDF tersedia di halaman terakhir]</p>
+      </div>
+    `;
+  });
 
   return `
     <html>
       <head>
         <style>
           body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; }
-          .page { page-break-before: always; padding: 40px; }
+          .page { page-break-before: always; padding: 0 40px 0 40px; }
           .cover-page {
             width: 100vw;
             height: 100vh;
             background-image: url('${coverBackgroundUrl}');
             background-size: cover;
             background-position: center;
-            position: relative; /* Diperlukan untuk positioning absolut anak elemen */
+            position: relative;
           }
           .cover-content {
             position: absolute;
-            top: 69.5%; /* Sesuaikan posisi vertikal */
+            top: 69.5%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 400px; /* Lebar area konten */
+            width: 400px;
             padding: 20px;
             text-align: center;
             color: #fff;
@@ -659,7 +724,7 @@ const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
             border: 4px solid white;
             background-color: #a1aebf;
           }
-            .user-details {
+          .user-details {
             text-align: center; 
             margin-left: 50px;
           }
@@ -671,6 +736,13 @@ const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
           .user-details p {
             margin: 8px 0;
             font-size: 18px;
+          }
+          @page :first {
+            margin: 0;
+          }
+          @page {
+            margin-top: 2cm;
+            margin-bottom: 2cm;
           }
         </style>
       </head>
@@ -709,6 +781,15 @@ const createEportfolioHtml = (user, submissions, mindmaps, averageScore) => {
             </tbody>
           </table>
         </div>
+
+        <div class="page">
+          <h2>Detail Jawaban</h2>
+          <div>
+            ${taskAnswersHtml}
+            ${mindmapHtml}
+          </div>
+        </div>
+
       </body>
     </html>
   `;
@@ -718,26 +799,37 @@ const downloadEportfolioAsPdf = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // 1. Ambil semua data dari database (logika mirip dengan controller Anda)
+    // Ambil data user
     const user = await User.findById(userId).lean();
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title").lean();
-    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "title").lean();
+    // Ambil semua submission tugas dan populate detail soal
+    const submissions = await TaskSubmission.find({ user: userId }).populate("task", "title essayQuestions multipleChoiceQuestions problem").lean();
+
+    // Ambil semua submission mindmap
+    const mindmapSubmissions = await MindmapSubmission.find({ user: userId }).populate("task", "title instructions rubric").lean();
 
     const scores = [...submissions, ...mindmapSubmissions].map((item) => item.score).filter((s) => typeof s === "number");
-    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    const averageScore = avg.toFixed(2);
+    const averageScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0;
 
-    // 2. Buat PDF utama dari HTML menggunakan Puppeteer
+    // Buat HTML
+    const htmlContent = createEportfolioHtml(
+      user,
+      submissions,
+      mindmapSubmissions,
+      averageScore,
+      submissions, // ini allTaskSubmissions
+      mindmapSubmissions
+    );
+
+    // Convert HTML ke PDF
     const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
     const page = await browser.newPage();
-    const htmlContent = createEportfolioHtml(user, submissions, mindmapSubmissions, averageScore);
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
     const mainPdfBytes = await page.pdf({ format: "A4", printBackground: true });
     await browser.close();
 
-    // 3. Gabungkan dengan PDF lampiran menggunakan pdf-lib
+    // Gabung PDF dengan feedback dan mindmap
     const mergedPdf = await PDFDocument.create();
     const mainPdfDoc = await PDFDocument.load(mainPdfBytes);
     const copiedMainPages = await mergedPdf.copyPages(mainPdfDoc, mainPdfDoc.getPageIndices());
@@ -752,11 +844,8 @@ const downloadEportfolioAsPdf = async (req, res) => {
 
     for (const fileUrl of fileUrlsToMerge) {
       try {
-        // 1. Decode URL untuk mengubah %20 menjadi spasi
         const decodedPathname = decodeURIComponent(new URL(fileUrl).pathname);
         const filename = path.basename(decodedPathname);
-
-        // 2. Buat path lokal yang benar
         const localPath = path.join(__dirname, "..", "uploads", filename);
 
         const fileBytes = await fs.readFile(localPath);
@@ -764,11 +853,10 @@ const downloadEportfolioAsPdf = async (req, res) => {
         const copiedPages = await mergedPdf.copyPages(pdfToMerge, pdfToMerge.getPageIndices());
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       } catch (err) {
-        console.warn(`Gagal membaca atau menggabungkan file ${fileUrl}: ${err.message}`);
+        console.warn(`Gagal membaca file ${fileUrl}: ${err.message}`);
       }
     }
 
-    // 4. Kirim hasil akhir ke user
     const mergedPdfBytes = await mergedPdf.save();
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="E-Portfolio - ${user.name}.pdf"`);
