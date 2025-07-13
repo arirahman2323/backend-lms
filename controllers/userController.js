@@ -62,6 +62,7 @@ const updateUser = async (req, res) => {
       password,
       profileImageUrl,
       role,
+      institution,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -75,6 +76,7 @@ const updateUser = async (req, res) => {
     if (username !== undefined) user.username = username;
     if (profileImageUrl !== undefined) user.profileImageUrl = profileImageUrl;
     if (role !== undefined) user.role = role;
+    if (institution !== undefined) user.institution = institution;
 
     // Hash password jika diberikan password baru
     if (password) {
